@@ -2418,6 +2418,110 @@
           "import_failed": {
             "cn": "转换 Excel 为 JSON 失败",
             "zh_tw": "轉換 Excel 為 JSON 失敗"
+          },
+          "newUserGuide": {
+            "title": {
+              "cn": "表格填写指南",
+              "zh_tw": "表格填寫指南"
+            },
+            "acknowledge_button": {
+              "cn": "我知道了，不再提示",
+              "zh_tw": "我知道了，不再提示"
+            },
+            "symbol_table": {
+              "title": {
+                "cn": "动作符号表",
+                "zh_tw": "動作符號表"
+              },
+              "header_action": {
+                "cn": "动作类型",
+                "zh_tw": "動作類型"
+              },
+              "header_symbols": {
+                "cn": "支持的符号",
+                "zh_tw": "支持的符號"
+              },
+              "header_recommended": {
+                "cn": "推荐写法",
+                "zh_tw": "推薦寫法"
+              },
+              "ultimate": {
+                "action": {
+                  "cn": "大招/上拉",
+                  "zh_tw": "大招/上拉"
+                },
+                "symbols": {
+                  "cn": "↑、大、个、W、w",
+                  "zh_tw": "↑、大、個、W、w"
+                },
+                "recommended": {
+                  "cn": "↑",
+                  "zh_tw": "↑"
+                }
+              },
+              "down": {
+                "action": {
+                  "cn": "下拉/防御",
+                  "zh_tw": "下拉/防禦"
+                },
+                "symbols": {
+                  "cn": "↓、防、S、s",
+                  "zh_tw": "↓、防、S、s"
+                },
+                "recommended": {
+                  "cn": "↓",
+                  "zh_tw": "↓"
+                }
+              },
+              "normal": {
+                "action": {
+                  "cn": "普攻",
+                  "zh_tw": "普攻"
+                },
+                "symbols": {
+                  "cn": "A、a、普",
+                  "zh_tw": "A、a、普"
+                },
+                "recommended": {
+                  "cn": "A",
+                  "zh_tw": "A"
+                }
+              },
+              "special": {
+                "action": {
+                  "cn": "密探SP圈",
+                  "zh_tw": "密探SP圈"
+                },
+                "symbols": {
+                  "cn": "O、o、圈",
+                  "zh_tw": "O、o、圈"
+                },
+                "recommended": {
+                  "cn": "O",
+                  "zh_tw": "O"
+                }
+              }
+            },
+            "cell_restrictions": {
+              "title": {
+                "cn": "每格内容限制",
+                "zh_tw": "每格內容限制"
+              },
+              "description": {
+                "cn": "不要有空格、换行、标点与其他文字字母。",
+                "zh_tw": "不要有空格、換行、標點與其他文字字母。"
+              }
+            },
+            "enemy_color": {
+              "title": {
+                "cn": "切换敌人",
+                "zh_tw": "切換敵人"
+              },
+              "description": {
+                "cn": "切换敌人通过表格颜色实现。",
+                "zh_tw": "切換敵人透過表格顏色實現。"
+              }
+            }
           }
         },
         "ShortCodeImporter": {

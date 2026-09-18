@@ -42,15 +42,17 @@ export const actionMap: Record<string, string> = {
   "↑": "大",
   个: "大",
   W: "大",
+  w: "大",
   大: "大",
   "↓": "下",
   S: "下",
+  s: "下",
   防: "下",
   a: "普",
   A: "普",
   普: "普",
+  o: "O",
   O: "O",
-  M: "O",
   圈: "O",
 };
 

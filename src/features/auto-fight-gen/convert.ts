@@ -6,7 +6,7 @@ import {
   defaultAutoFightConfig,
   fightActionTemplates,
   operationMap,
-} from "./config";
+} from "./config.ts";
 
 const COLUMNS = ["1", "2", "3", "4", "5"] as const;
 
@@ -16,7 +16,24 @@ type AutoFightNode = Record<string, unknown>;
 
 type AutoFightGraph = Record<string, AutoFightNode>;
 
-const ACTION_REGEX = /([^\d]*?)(\d)(\D)/g;
+const ACTION_REGEX = /([^\d]*?)(\d+)(\D)/g;
+
+// 动作符号归一化：把各种别名统一成标准符号
+const canonicalActionMap: Record<string, string> = {
+  "↑": "↑",
+  个: "↑",
+  W: "↑",
+  大: "↑",
+  "↓": "↓",
+  S: "↓",
+  防: "↓",
+  a: "A",
+  A: "A",
+  普: "A",
+  O: "O",
+  M: "O",
+  圈: "O",
+};
 
 const NAMED_COLORS = {
   黑: "黑",
@@ -30,7 +47,6 @@ const NAMED_COLORS = {
   紫: "紫",
 } as const;
 
-// 近似主题色对应的十六进制（仅用于前端色块展示）
 const themeColorHexMap: Record<number, string> = {
   0: "#FFFFFF",
   1: "#000000",
@@ -131,13 +147,10 @@ export const rgbToNamedColor = (r: number, g: number, b: number): string => {
   const sat = s * 255;
   const val = v * 255;
 
-  // 黑/白/灰优先（与原阈值兼容）
   if (sat <= 43 && val <= 46) return NAMED_COLORS.黑;
   if (sat <= 30 && val >= 221) return NAMED_COLORS.白;
   if (sat <= 43 && val > 46 && val < 221) return NAMED_COLORS.灰;
 
-  // 使用 0..360 的 Hue 统一映射到常用中文色
-  // 近似区间：红[0,20]|[345,360] 橙(20,46] 黄(46,68] 绿(68,164] 蓝(164,248] 紫(248,345]
   if (h <= 20 || h > 345) return NAMED_COLORS.红;
   if (h <= 46) return NAMED_COLORS.橙;
   if (h <= 68) return NAMED_COLORS.黄;
@@ -168,7 +181,6 @@ const rgbTupleToHex = (rgb: [number, number, number]): string =>
     .toString(16)
     .padStart(2, "0")}${rgb[2].toString(16).padStart(2, "0")}`.toUpperCase();
 
-// 读取单元格填充颜色（优先 rgb，其次 theme），返回 RGB 十六进制字符串
 const getCellFillRgbHex = (cell: CellObject): string | null => {
   const anyCell = cell as unknown as {
     s?: {
@@ -181,7 +193,6 @@ const getCellFillRgbHex = (cell: CellObject): string | null => {
     };
   };
   const s = anyCell?.s;
-  // Excel 无填充：patternType === 'none' 或者缺失颜色字段
   const tryColors = [s?.fgColor?.rgb, s?.fill?.fgColor?.rgb, s?.fill?.bgColor?.rgb].filter(
     Boolean,
   ) as string[];
@@ -201,7 +212,6 @@ const pickCellColor = (cell: CellObject, config: AutoFightConfig): string => {
     return "";
   }
 
-  // 文本模式：前缀以 colorList 中的任意标识开头（允许使用字母令牌）
   if (config.colorType === "text") {
     const raw = typeof cell.v === "string" ? cell.v.trim() : "";
     if (!raw) return "";
@@ -209,14 +219,11 @@ const pickCellColor = (cell: CellObject, config: AutoFightConfig): string => {
     return matched ?? "";
   }
 
-  // 填充模式：使用 paletteHexList 来确保“按原色块”精准区分
   const rawFillHex = getCellFillRgbHex(cell);
   const defaultHex = getDefaultColorHex(config);
-  // 统一“无色/透明/无填充/白色”到 DEFAULT_COLOR 路径
   const normalizedHex = (() => {
     if (!rawFillHex) return defaultHex;
     const upper = rawFillHex.toUpperCase();
-    // alpha=0 或明确白色都应视为默认色路径；xlsx 读出 ARGB 的透明白会被规约为 #FFFFFF
     if (upper === "#FFFFFF") return defaultHex;
     return upper;
   })();
@@ -228,16 +235,13 @@ const pickCellColor = (cell: CellObject, config: AutoFightConfig): string => {
       : config.colorList;
   let idx = palette.indexOf(normalizedHex);
   if (idx >= 0 && tokens[idx]) {
-    // 返回单字符令牌（例如 A/B/C/...），便于后续解析与最短旋转
     return tokens[idx];
   }
-  // 无法解析的颜色，记录告警并回退到 DEFAULT_COLOR
   const fallbackIdx = palette.indexOf(defaultHex);
   if (fallbackIdx >= 0 && tokens[fallbackIdx]) {
     console.warn("[XlsxImporter] 未识别的颜色，回退到默认色", rawFillHex, "→", defaultHex);
     return tokens[fallbackIdx];
   }
-  // 仍未找到映射，尽量保持不中断：若存在 token 列表，回退第一个
   if (tokens.length > 0) {
     console.warn("[XlsxImporter] 默认色未在调色板中，使用第一个令牌作为回退", {
       defaultHex,
@@ -248,9 +252,13 @@ const pickCellColor = (cell: CellObject, config: AutoFightConfig): string => {
   return "";
 };
 
-const readSheetRows = (arrayBuffer: ArrayBuffer, config: AutoFightConfig): string[][] => {
+const readSheetRows = (
+  arrayBuffer: ArrayBuffer,
+  config: AutoFightConfig,
+  sheetIndex = 0,
+): string[][] => {
   const workbook = read(arrayBuffer, { type: "array", cellStyles: true });
-  const [sheetName] = workbook.SheetNames;
+  const sheetName = workbook.SheetNames[sheetIndex];
   if (!sheetName) {
     throw new Error("xlsx_no_sheet");
   }
@@ -294,12 +302,10 @@ const readSheetRows = (arrayBuffer: ArrayBuffer, config: AutoFightConfig): strin
   return rows;
 };
 
-// 提取 Excel 中出现的命名颜色（仅统计含内容的单元格）
 export const detectXlsxColors = (
   arrayBuffer: ArrayBuffer,
   overrides?: Partial<AutoFightConfig>,
 ): string[] => {
-  // 强制启用颜色解析做检测，但颜色来源遵循 overrides 中的 colorType
   const config = normalizeConfig({ useColor: true, ...overrides });
   const workbook = read(arrayBuffer, { type: "array", cellStyles: true });
   const [sheetName] = workbook.SheetNames;
@@ -321,10 +327,8 @@ export const detectXlsxColors = (
       const cell = sheet[cellAddress] as CellObject | undefined;
       if (!cell) continue;
       const rawText = cell.v === undefined || cell.v === null ? "" : String(cell.v).trim();
-      // 没有文本也允许统计，只要单元格存在填充色
       const fillHex = getCellFillRgbHex(cell);
       if (fillHex) {
-        // 转命名色以对齐生成逻辑
         const hexNoHash = fillHex.replace("#", "");
         const r = parseInt(hexNoHash.slice(0, 2), 16);
         const g = parseInt(hexNoHash.slice(2, 4), 16);
@@ -348,7 +352,6 @@ export interface DetectedColor {
   rgb: string;
 }
 
-// 提取 Excel 中出现的颜色调色板（包含色块展示所需的 RGB）
 export const detectXlsxPalette = (
   arrayBuffer: ArrayBuffer,
   overrides?: Partial<AutoFightConfig>,
@@ -362,7 +365,7 @@ export const detectXlsxPalette = (
   if (!rangeRef) return [];
   const range = utils.decode_range(rangeRef);
 
-  const map = new Map<string, DetectedColor>(); // key: rgb hex
+  const map = new Map<string, DetectedColor>();
   const defaultHex = getDefaultColorHex(config);
   let hasNoFillOrDefault = false;
 
@@ -377,7 +380,6 @@ export const detectXlsxPalette = (
         hasNoFillOrDefault = true;
         continue;
       }
-      // 白色或透明白等价为默认色
       const fillHex = rawFillHex.toUpperCase() === "#FFFFFF" ? defaultHex : rawFillHex;
       const hexNoHash = fillHex.replace("#", "");
       const r8 = parseInt(hexNoHash.slice(0, 2), 16);
@@ -390,7 +392,6 @@ export const detectXlsxPalette = (
     }
   }
 
-  // 若存在无填充/透明，则确保默认色进入调色板（便于后续映射）
   if (hasNoFillOrDefault && !map.has(defaultHex)) {
     map.set(defaultHex, { label: hexToNamedColor(defaultHex), rgb: defaultHex });
   }
@@ -428,74 +429,158 @@ const getSlideOperations = (
 
 // --- 预处理辅助 ---
 
-// xlsx 库可能给每格多读一个脏前缀字符（通常是 a 或 A），非颜色模式下需要剥掉
 const isDirtyPrefix = (ch: string) => ch === "a" || ch === "A";
 
-// 剩余部分是否全是合法动作符号（可整体加序号）
-const isAllActionSymbols = (s: string) =>
-  s.length > 0 && Array.from(s).every((c) => actionMap[c] && actionMap[c] !== "未知");
-
-// 预处理：给无编号单元格自动补序号
-// 单字符直接编号；多字符整体加一个序号，交给后续多动作展开
-// "↑"→"1↑"、"防"→"1防"、"↑↑"→"1↑↑"、"↓↓↓"→"2↓↓↓"
-// 颜色模式保留首字符（颜色 token），非颜色模式剥掉脏前缀 a/A 和未知前缀
+// 预处理：给整行补全序号。
+// 规则：
+// 1. 每行独立编号；
+// 2. 带数字的动作视为锚点，数字仅用于排序；
+// 3. 同一单元格里，锚点之前的连续无序号动作，作为一个“无锚点组”，
+//    从 1 开始找第一个未被锚点主位置占用的空闲数字，作为这一组的主位置，
+//    组内动作按顺序给 secondary = 0, 1, 2, ...，整体连续占位；
+// 4. 同一单元格里，锚点之后的连续无序号动作，挂在最近锚点后面：
+//    主位置 = 该锚点号，secondary = 挂载顺序；
+// 5. 合并后从 1 开始重新连续编号，再按原单元格写回。
 const preprocessRow = (row: string[], config: AutoFightConfig): string[] => {
-  const usedNumbers = new Set<number>();
-  for (const cell of row) {
-    const m = /\d+/.exec(cell);
-    if (m) usedNumbers.add(Number(m[0]));
-  }
-  const nextNum = () => {
-    let n = 1;
-    while (usedNumbers.has(n)) n++;
-    usedNumbers.add(n);
-    return n;
-  };
+  const colorTokens = new Set<string>([
+    ...(config.colorTokenList ?? []),
+    ...(config.colorList ?? []),
+  ]);
 
-  const stripPrefix = (cell: string): { prefix: string; rest: string } => {
+  const splitPrefix = (cell: string): { prefix: string; rest: string } => {
     if (config.useColor) {
-      // 颜色模式：首字符是颜色 token，原样保留
-      return { prefix: cell[0], rest: cell.slice(1) };
+      const first = cell[0] ?? "";
+      if (first && colorTokens.has(first)) {
+        return { prefix: first, rest: cell.slice(1) };
+      }
+      return { prefix: "", rest: cell };
     }
-    // 非颜色模式：跳过不在 actionMap 中的前缀字符 和 xlsx 脏前缀 a/A
     let i = 0;
     while (i < cell.length && (!actionMap[cell[i]] || isDirtyPrefix(cell[i]))) {
-      // 脏前缀只在后面还有内容时才剥（单独的 a/A 是合法普攻动作）
       if (isDirtyPrefix(cell[i]) && i + 1 >= cell.length) break;
       i++;
     }
     return { prefix: "", rest: cell.slice(i) };
   };
 
-  return row.map((cell) => {
-    if (!cell || !cell.trim()) return cell;
-    if (/\d/.test(cell)) return cell; // 已有编号
-    // 单字符：直接编号
-    if (cell.length === 1) {
-      if (actionMap[cell] && actionMap[cell] !== "未知") return `${nextNum()}${cell}`;
-      return cell;
+  type Parsed = {
+    cellIdx: number;
+    posInCell: number;
+    anchor: number | null;
+    symbol: string;
+    prefix: string;
+  };
+
+  // 1) 解析每格动作
+  const actionsByCell: Parsed[][] = row.map(() => []);
+  row.forEach((cell, cellIdx) => {
+    if (!cell || !cell.trim()) return;
+    const { prefix, rest } = splitPrefix(cell);
+    if (!rest) return;
+    const re = /(\d*)([^\d])/g;
+    let m: RegExpExecArray | null;
+    let posInCell = 0;
+    while ((m = re.exec(rest)) !== null) {
+      const rawSymbol = m[2];
+      const symbol = canonicalActionMap[rawSymbol] ?? rawSymbol;
+      if (!actionMap[symbol] || actionMap[symbol] === "未知") continue;
+      const numStr = m[1];
+      actionsByCell[cellIdx].push({
+        cellIdx,
+        posInCell: posInCell++,
+        anchor: numStr ? Number(numStr) : null,
+        symbol,
+        prefix,
+      });
     }
-    // 多字符无编号：剥前缀后整体加序号
-    const { prefix, rest } = stripPrefix(cell);
-    if (isAllActionSymbols(rest)) {
-      return `${prefix}${nextNum()}${rest}`;
+  });
+
+  // 2) 收集锚点主位置
+  const anchorNums = new Set<number>();
+  let totalActions = 0;
+  actionsByCell.forEach((cellActions) => {
+    totalActions += cellActions.length;
+    cellActions.forEach((a) => {
+      if (a.anchor !== null) anchorNums.add(a.anchor);
+    });
+  });
+
+  // 3) 算空闲数字列表（从 1 开始，跳过锚点主位置）
+  const maxAnchor = anchorNums.size > 0 ? Math.max(...anchorNums) : 0;
+  const limit = Math.max(totalActions, maxAnchor) + totalActions;
+  const freeNums: number[] = [];
+  for (let n = 1; n <= limit; n++) {
+    if (!anchorNums.has(n)) freeNums.push(n);
+  }
+  let freeIdx = 0;
+
+  // 4) 算排序键
+  type Keyed = Parsed & { primary: number; secondary: number };
+  const keyed: Keyed[] = [];
+
+  actionsByCell.forEach((cellActions) => {
+    if (cellActions.length === 0) return;
+
+    const firstAnchorIdx = cellActions.findIndex((a) => a.anchor !== null);
+
+    // 全部无锚点：整格作为一组
+    if (firstAnchorIdx === -1) {
+      const primary = freeNums[freeIdx++] ?? Number.MAX_SAFE_INTEGER;
+      cellActions.forEach((a, i) => {
+        keyed.push({ ...a, primary, secondary: i });
+      });
+      return;
     }
-    return cell;
+
+    // 锚点之前的连续无锚点：作为一组
+    if (firstAnchorIdx > 0) {
+      const leading = cellActions.slice(0, firstAnchorIdx);
+      const primary = freeNums[freeIdx++] ?? Number.MAX_SAFE_INTEGER;
+      leading.forEach((a, i) => {
+        keyed.push({ ...a, primary, secondary: i });
+      });
+    }
+
+    // 锚点及其后面挂载的无序号动作
+    let anchorPrimary: number | null = null;
+    let anchorCount = 0;
+    for (let i = firstAnchorIdx; i < cellActions.length; i++) {
+      const a = cellActions[i];
+      if (a.anchor !== null) {
+        anchorPrimary = a.anchor;
+        anchorCount = 0;
+        keyed.push({ ...a, primary: anchorPrimary, secondary: 0 });
+      } else {
+        anchorCount++;
+        keyed.push({ ...a, primary: anchorPrimary!, secondary: anchorCount });
+      }
+    }
+  });
+
+  // 5) 排序
+  keyed.sort((a, b) => {
+    if (a.primary !== b.primary) return a.primary - b.primary;
+    if (a.secondary !== b.secondary) return a.secondary - b.secondary;
+    if (a.cellIdx !== b.cellIdx) return a.cellIdx - b.cellIdx;
+    return a.posInCell - b.posInCell;
+  });
+
+  // 6) 重新编号 + 按原格写回
+  const cellOutputs: string[] = row.map(() => "");
+  keyed.forEach((a, idx) => {
+    const newNum = idx + 1;
+    cellOutputs[a.cellIdx] += `${a.prefix}${newNum}${a.symbol}`;
+  });
+
+  return row.map((orig, i) => {
+    if (!orig || !orig.trim()) return orig ?? "";
+    return cellOutputs[i] || orig;
   });
 };
 
-const parseActionsForRow = (row: string[], config: AutoFightConfig): ActionOrder => {
-  // 在 actionOrder 指定序号插入，已有条目及后续全部后移
-  const insertWithShift = (order: number, entry: ActionOrder[number]) => {
-    if (actionOrder[order]) {
-      const keys = Object.keys(actionOrder).map(Number).sort((a, b) => b - a);
-      for (const k of keys) {
-        if (k >= order) { actionOrder[k + 1] = actionOrder[k]; delete actionOrder[k]; }
-      }
-    }
-    actionOrder[order] = entry;
-  };
+export const __debugPreprocessRow = preprocessRow;
 
+const parseActionsForRow = (row: string[], config: AutoFightConfig): ActionOrder => {
   const actionOrder: ActionOrder = {};
   const processed = preprocessRow(row, config);
 
@@ -513,48 +598,32 @@ const parseActionsForRow = (row: string[], config: AutoFightConfig): ActionOrder
     const matches = Array.from(normalized.matchAll(ACTION_REGEX));
 
     matches.forEach((match) => {
-        let operations = match[1];
-        if (config.useColor && config.colorList.length > 0) {
-          const expectedColor = matches[0]?.[1]?.[0];
-          if (!operations || !config.colorList.includes(operations[0] ?? "")) {
-            operations = (expectedColor ?? "") + operations;
-          }
+      let operations = match[1];
+      if (config.useColor && config.colorList.length > 0) {
+        const expectedColor = matches[0]?.[1]?.[0];
+        if (!operations || !config.colorList.includes(operations[0] ?? "")) {
+          operations = (expectedColor ?? "") + operations;
         }
-        const number = Number(match[2]);
-        const symbol = match[3];
-        const actionType = actionMap[symbol] ?? "未知";
-        if (actionType === "未知") {
-          console.warn("未知的动作符号", symbol);
-          return;
-        }
+      }
+      const number = Number(match[2]);
+      const symbol = match[3];
+      const actionType = actionMap[symbol] ?? "未知";
+      if (actionType === "未知") {
+        console.warn("未知的动作符号", symbol);
+        return;
+      }
 
-        // 找下一个可用序号（如 "4A" 在 "2↓↓↓" 之后序号被占 → 自动顺延）
-        let order = number;
-        while (actionOrder[order]) order++;
-        actionOrder[order] = {
-          action: `${operations}${columnIndex}${actionType}`,
-        };
-
-        // 单元格内后续动作：同位置连动（如 "2↓↓↓" → 2号位连续3次↓）
-        // 注意：若 remaining 含数字（如 "1↓2↑" 的后续 "2↑"），allValid 会因数字
-        // 不在 actionMap 而自然为 false，从而跳过展开——这正是期望行为
-        const matchEnd = (match.index ?? 0) + match[0].length;
-        const remaining = normalized.slice(matchEnd);
-        if (remaining.length > 0 && isAllActionSymbols(remaining)) {
-          for (const c of remaining) {
-            order++;
-            insertWithShift(order, {
-              action: `${operations}${columnIndex}${actionMap[c]}`,
-            });
-          }
-        }
-      });
+      actionOrder[number] = {
+        action: `${operations}${columnIndex}${actionType}`,
+      };
+    });
   });
 
-  // 整体重排序号，保证连续且按序号顺序执行
   const sorted = Object.entries(actionOrder).sort(([a], [b]) => Number(a) - Number(b));
   const renumbered: ActionOrder = {};
-  sorted.forEach(([, action], i) => { renumbered[i + 1] = action; });
+  sorted.forEach(([, action], i) => {
+    renumbered[i + 1] = action;
+  });
   return renumbered;
 };
 
@@ -663,18 +732,19 @@ const addRestartInfo = (graph: AutoFightGraph, config: AutoFightConfig) => {
 
 export interface ConvertOptions extends Partial<AutoFightConfig> {}
 
+type ConvertProbeOptions = ConvertOptions & { __sheetIndex?: number };
+
 export const convertXlsxToAutoFightJson = (
   arrayBuffer: ArrayBuffer,
-  overrides?: ConvertOptions,
+  overrides?: ConvertProbeOptions,
 ) => {
   const config = normalizeConfig(overrides);
-  const rows = readSheetRows(arrayBuffer, config);
+  const rows = readSheetRows(arrayBuffer, config, overrides?.__sheetIndex ?? 0);
   if (!rows.length) {
     throw new Error("xlsx_no_content");
   }
 
   const graph: AutoFightGraph = {};
-  // 首回合目标切换：如指定（或默认）当前指向，则使用其作为初始颜色基准
   let previousColor = "";
   if (config.useColor && (config.colorList?.length ?? 0) > 0) {
     const idx = Math.max(1, config.currentEnemyIndex ?? 1) - 1;

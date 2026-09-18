@@ -5,15 +5,35 @@ import {
   convertXlsxToAutoFightJson,
   detectXlsxPalette,
 } from "features/auto-fight-gen/convert";
+import { NewUserGuide } from "features/auto-fight-gen/NewUserGuide";
 import { ChangeEventHandler, FC, useRef, useState } from "react";
 
 import { useTranslation } from "../../../i18n/i18n";
 import { AppToaster } from "../../Toaster";
 import { updateOperationDocTitle } from "./updateDocTitle";
 
+const GUIDE_SKIPPED_KEY = "import.guide.skipped";
+
+const isGuideSkipped = (): boolean => {
+  try {
+    return localStorage.getItem(GUIDE_SKIPPED_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const setGuideSkipped = () => {
+  try {
+    localStorage.setItem(GUIDE_SKIPPED_KEY, "1");
+  } catch {
+    // localStorage may be unavailable in private browsing mode.
+  }
+};
+
 export const XlsxImporter: FC<{ onImport: (content: string) => void }> = ({ onImport }) => {
   const t = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isMappingOpen, setIsMappingOpen] = useState(false);
   const [pendingBuffer, setPendingBuffer] = useState<ArrayBuffer | null>(null);
   const [pendingFileName, setPendingFileName] = useState<string>("");
@@ -132,7 +152,13 @@ export const XlsxImporter: FC<{ onImport: (content: string) => void }> = ({ onIm
       <MenuItem
         icon="th"
         shouldDismissPopover={false}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => {
+          if (isGuideSkipped()) {
+            inputRef.current?.click();
+            return;
+          }
+          setIsGuideOpen(true);
+        }}
         text={
           <>
             {t.components.editor.source.XlsxImporter.import_xlsx}
@@ -145,6 +171,16 @@ export const XlsxImporter: FC<{ onImport: (content: string) => void }> = ({ onIm
             />
           </>
         }
+      />
+
+      <NewUserGuide
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        onAcknowledge={() => {
+          setGuideSkipped();
+          setIsGuideOpen(false);
+          inputRef.current?.click();
+        }}
       />
 
       <Dialog isOpen={isMappingOpen} onClose={cancelMapping} title="敌人颜色顺序">

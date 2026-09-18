@@ -20,6 +20,7 @@ import { AppToaster } from "../../Toaster";
 import { Droppable, Sortable } from "../../dnd";
 import { NumericInput2 } from "../../editor/NumericInput2";
 import { editorAtoms, useEdit } from "../editor-state";
+import { FloatingActionRecorder } from "./FloatingActionRecorder";
 import {
   MappingOptions,
   RoundActionsInput,
@@ -632,6 +633,13 @@ export const ActionEditor: FC<ActionEditorProps> = ({ className }) => {
         }
         return next;
       });
+    },
+    [applyRoundActions],
+  );
+
+  const handleRecorderSave = useCallback(
+    (next: RoundActionsInput) => {
+      applyRoundActions(() => next);
     },
     [applyRoundActions],
   );
@@ -1347,6 +1355,11 @@ export const ActionEditor: FC<ActionEditorProps> = ({ className }) => {
           </SortableContext>
         </DndContext>
       )}
+      <FloatingActionRecorder
+        roundActions={roundActions}
+        slotAssignments={slotAssignments}
+        onSave={handleRecorderSave}
+      />
     </div>
   );
 };

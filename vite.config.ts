@@ -13,6 +13,19 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react(), viteTsconfigPath(), generateTranslations()],
+    define: {
+      // react-draggable reads this debug switch during drag/resize. Leaving it
+      // untouched crashes browsers with "process is not defined".
+      'process.env.DRAGGABLE_DEBUG': 'false',
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        define: {
+          'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || mode),
+          'process.env.DRAGGABLE_DEBUG': 'false',
+        },
+      },
+    },
     server: {
       port: +env.PORT || undefined,
       server: '0.0.0.0',
