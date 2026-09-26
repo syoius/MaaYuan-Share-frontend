@@ -16,6 +16,12 @@ import {
   filterOperationShareActions,
 } from './operationShareModel'
 import {
+  DEFAULT_OPERATION_SHARE_TABLE_THEME,
+  type OperationShareTableTheme,
+  type OperationShareTableThemeOverrides,
+  getOperationShareTableTheme,
+} from './operationShareTheme'
+import {
   ShareCardFrame,
   ShareOperatorAvatar,
   ShareSectionTitle,
@@ -23,11 +29,6 @@ import {
 } from './shareCardComponents'
 
 const defaultCardConfig = createOperationShareCardConfig()
-const tableBorderColor = '#78501f'
-const tableHeaderBackground = '#f0dec1'
-const tableBodyBackgrounds = ['#f3e3c9', '#ddc09e'] as const
-const operationShareTextColor = '#624015'
-const operationShareMutedTextColor = '#9a856d'
 const accessibleDarkTextColor = '#231f20'
 
 const shareCellPatternStyles: Record<OperationShareCellPattern, CSSProperties> =
@@ -76,46 +77,52 @@ const shareCellColorVisualStyles: Record<
 )
 
 // 未上色的单元格按回合隔行取底色，始终不带纹样。
-const shareCellRowVisualStyles: Record<string, CSSProperties> = {
-  [tableBodyBackgrounds[0]]: {
-    backgroundColor: tableBodyBackgrounds[0],
-    color: operationShareTextColor,
-  },
-  [tableBodyBackgrounds[1]]: {
-    backgroundColor: tableBodyBackgrounds[1],
-    color: operationShareTextColor,
-  },
-}
-
 const emptyOperationShareCellVisualStyle: CSSProperties = {}
 
 export function getOperationShareCellVisualStyle(
   cellColor?: string,
   showPattern = false,
+  tableTheme = DEFAULT_OPERATION_SHARE_TABLE_THEME,
 ): CSSProperties {
   if (!cellColor) return emptyOperationShareCellVisualStyle
 
-  const rowStyle = shareCellRowVisualStyles[cellColor]
-  if (rowStyle) return rowStyle
-
   const colorStyle = shareCellColorVisualStyles[cellColor]
-  if (!colorStyle) return emptyOperationShareCellVisualStyle
+  if (colorStyle) {
+    return showPattern ? colorStyle.patterned : colorStyle.plain
+  }
 
-  return showPattern ? colorStyle.patterned : colorStyle.plain
+  if (
+    cellColor === tableTheme.bodyBackgrounds[0] ||
+    cellColor === tableTheme.bodyBackgrounds[1]
+  ) {
+    return { backgroundColor: cellColor, color: tableTheme.text }
+  }
+
+  return emptyOperationShareCellVisualStyle
 }
 
-function getOperationShareRoundBackground(round: number) {
-  return tableBodyBackgrounds[(round - 1) % tableBodyBackgrounds.length]
+function getOperationShareRoundBackground(
+  round: number,
+  tableColor?: string,
+  tableThemeOverrides?: OperationShareTableThemeOverrides,
+) {
+  const { bodyBackgrounds } = getOperationShareTableTheme(
+    tableColor,
+    tableThemeOverrides,
+  )
+  return bodyBackgrounds[(round - 1) % bodyBackgrounds.length]
 }
 
 export function getOperationShareActionCellBackground(
   cellColors: OperationShareCardConfig['cellColors'],
   round: number,
   slot: number,
+  tableColor?: string,
+  tableThemeOverrides?: OperationShareTableThemeOverrides,
 ) {
   return (
     cellColors[buildOperationShareCellKey(round, `slot-${slot}`)] ??
-    getOperationShareRoundBackground(round)
+    getOperationShareRoundBackground(round, tableColor, tableThemeOverrides)
   )
 }
 
@@ -178,9 +185,11 @@ export function getOperationShareOperatorStarLabel(
 function OperatorAvatar({
   operator,
   slot,
+  tableTheme,
 }: {
   operator?: OperationShareOperator
   slot: number
+  tableTheme: OperationShareTableTheme
 }) {
   if (!operator) {
     return (
@@ -188,7 +197,7 @@ function OperatorAvatar({
         className="flex aspect-square w-full items-center justify-center border-2 border-dashed text-lg font-semibold"
         style={{
           borderColor: '#9aaba5',
-          color: operationShareMutedTextColor,
+          color: tableTheme.headerMutedText,
         }}
       >
         {slot} 号位
@@ -217,22 +226,29 @@ function OperatorAvatar({
   )
 }
 
-function OperatorLabel({ operator }: { operator?: OperationShareOperator }) {
+function OperatorLabel({
+  operator,
+  tableTheme,
+}: {
+  operator?: OperationShareOperator
+  tableTheme: OperationShareTableTheme
+}) {
   if (!operator) {
-    return (
-      <span style={{ color: operationShareMutedTextColor }}>未配置密探</span>
-    )
+    return <span style={{ color: tableTheme.headerMutedText }}>未配置密探</span>
   }
 
   return (
-    <div className="px-1 py-2 text-center">
+    <div
+      className="px-1 py-2 text-center"
+      style={{ color: tableTheme.headerText }}
+    >
       <div className="break-words text-[20px] font-bold leading-tight">
         {operator.name}
       </div>
       {operator.skill || operator.module ? (
         <div
           className="mt-1 text-[12px] font-medium leading-4"
-          style={{ color: operationShareMutedTextColor }}
+          style={{ color: tableTheme.headerMutedText }}
         >
           {operator.skill ? <div>技能 {operator.skill}</div> : null}
           {operator.module ? <div>{operator.module}模组</div> : null}
@@ -307,8 +323,14 @@ export function OperationShareCard({
   showShortCode?: boolean
   config?: OperationShareCardConfig
 }) {
+  const tableTheme = getOperationShareTableTheme(
+    config.tableColor,
+    config.tableThemeOverrides,
+  )
+
   return (
     <ShareCardFrame
+      backgroundColor={tableTheme.pageBackground}
       cardRef={cardRef}
       eyebrow="MaaYuan · 作业分享"
       hideQrCode={hideQrCode}
@@ -321,8 +343,8 @@ export function OperationShareCard({
         <table
           className="mt-5 w-full table-fixed border-collapse text-center"
           style={{
-            borderColor: tableBorderColor,
-            color: operationShareTextColor,
+            borderColor: tableTheme.border,
+            color: tableTheme.text,
           }}
         >
           <thead>
@@ -330,8 +352,8 @@ export function OperationShareCard({
               <td
                 className="w-[110px] border-2 p-0"
                 style={{
-                  borderColor: tableBorderColor,
-                  background: tableHeaderBackground,
+                  borderColor: tableTheme.border,
+                  background: tableTheme.headerBackground,
                 }}
               />
               {model.actionSlots.map((slot) => (
@@ -339,13 +361,14 @@ export function OperationShareCard({
                   key={slot}
                   className="border-2 p-0 align-middle"
                   style={{
-                    borderColor: tableBorderColor,
-                    background: tableHeaderBackground,
+                    borderColor: tableTheme.border,
+                    background: tableTheme.headerBackground,
                   }}
                 >
                   <OperatorAvatar
                     operator={model.operators[slot - 1]}
                     slot={slot}
+                    tableTheme={tableTheme}
                   />
                 </td>
               ))}
@@ -353,8 +376,8 @@ export function OperationShareCard({
                 <td
                   className="w-[118px] border-2 p-0"
                   style={{
-                    borderColor: tableBorderColor,
-                    background: tableHeaderBackground,
+                    borderColor: tableTheme.border,
+                    background: tableTheme.headerBackground,
                   }}
                 />
               ) : null}
@@ -362,20 +385,23 @@ export function OperationShareCard({
                 <td
                   className="w-[168px] border-2 p-0"
                   style={{
-                    borderColor: tableBorderColor,
-                    background: tableHeaderBackground,
+                    borderColor: tableTheme.border,
+                    background: tableTheme.headerBackground,
                   }}
                 />
               ) : null}
             </tr>
             <tr
               aria-label="列标题"
-              style={{ background: tableHeaderBackground }}
+              style={{
+                background: tableTheme.headerBackground,
+                color: tableTheme.headerText,
+              }}
             >
               <th
                 className="border-2 px-3 py-3 text-[21px] font-bold"
                 scope="col"
-                style={{ borderColor: tableBorderColor }}
+                style={{ borderColor: tableTheme.border }}
               >
                 回合
               </th>
@@ -384,16 +410,19 @@ export function OperationShareCard({
                   key={slot}
                   className="border-2 px-1 py-2 align-middle"
                   scope="col"
-                  style={{ borderColor: tableBorderColor }}
+                  style={{ borderColor: tableTheme.border }}
                 >
-                  <OperatorLabel operator={model.operators[slot - 1]} />
+                  <OperatorLabel
+                    operator={model.operators[slot - 1]}
+                    tableTheme={tableTheme}
+                  />
                 </th>
               ))}
               {config.showOtherActions ? (
                 <th
                   className="border-2 px-3 py-3 text-lg font-bold"
                   scope="col"
-                  style={{ borderColor: tableBorderColor }}
+                  style={{ borderColor: tableTheme.border }}
                 >
                   其他动作
                 </th>
@@ -402,7 +431,7 @@ export function OperationShareCard({
                 <th
                   className="border-2 px-3 py-3 text-lg font-bold"
                   scope="col"
-                  style={{ borderColor: tableBorderColor }}
+                  style={{ borderColor: tableTheme.border }}
                 >
                   备注
                 </th>
@@ -416,19 +445,21 @@ export function OperationShareCard({
                   getOperationShareRoundDisplay(round, config)
                 const rowBackground = getOperationShareRoundBackground(
                   round.round,
+                  config.tableColor,
+                  config.tableThemeOverrides,
                 )
 
                 return (
                   <tr key={round.round} style={{ background: rowBackground }}>
                     <th
                       className="border-2 px-3 py-3 text-[19px] leading-tight"
-                      style={{ borderColor: tableBorderColor }}
+                      style={{
+                        borderColor: tableTheme.border,
+                        color: tableTheme.text,
+                      }}
                     >
                       <span className="block text-[28px] font-bold">
                         {round.round}
-                      </span>
-                      <span className="mt-1 block text-sm font-semibold">
-                        回合
                       </span>
                     </th>
                     {model.actionSlots.map((slot) => (
@@ -436,14 +467,17 @@ export function OperationShareCard({
                         key={slot}
                         className="border-2 px-1.5 py-2 align-middle"
                         style={{
-                          borderColor: tableBorderColor,
+                          borderColor: tableTheme.border,
                           ...getOperationShareCellVisualStyle(
                             getOperationShareActionCellBackground(
                               config.cellColors,
                               round.round,
                               slot,
+                              config.tableColor,
+                              config.tableThemeOverrides,
                             ),
                             config.showCellPattern,
+                            tableTheme,
                           ),
                         }}
                       >
@@ -457,7 +491,7 @@ export function OperationShareCard({
                       <td
                         className="border-2 px-1.5 py-2 align-middle"
                         style={{
-                          borderColor: tableBorderColor,
+                          borderColor: tableTheme.border,
                           background: rowBackground,
                         }}
                       >
@@ -471,11 +505,11 @@ export function OperationShareCard({
                       <td
                         className="whitespace-pre-wrap break-words border-2 px-3 py-3 text-left text-[17px] font-medium leading-6 align-middle"
                         style={{
-                          borderColor: tableBorderColor,
+                          borderColor: tableTheme.border,
                           background: rowBackground,
                           color: config.notes[round.round]
-                            ? operationShareTextColor
-                            : operationShareMutedTextColor,
+                            ? tableTheme.text
+                            : tableTheme.mutedText,
                         }}
                       >
                         {config.notes[round.round] || '—'}
@@ -485,7 +519,7 @@ export function OperationShareCard({
                 )
               })
             ) : (
-              <tr style={{ background: tableBodyBackgrounds[0] }}>
+              <tr style={{ background: tableTheme.bodyBackgrounds[0] }}>
                 <td
                   className="border-2 px-4 py-8 text-base font-medium"
                   colSpan={
@@ -495,8 +529,8 @@ export function OperationShareCard({
                     (config.showNotes ? 1 : 0)
                   }
                   style={{
-                    borderColor: tableBorderColor,
-                    color: operationShareMutedTextColor,
+                    borderColor: tableTheme.border,
+                    color: tableTheme.mutedText,
                   }}
                 >
                   此作业未定义动作序列

@@ -8,6 +8,7 @@ import {
   createOperationShareCardConfig,
 } from './components/viewer/operationShareModel'
 import './styles/blueprint.less'
+import './styles/global.css'
 
 const operators = [
   ['杨修', 'char_001_yangxiu'],

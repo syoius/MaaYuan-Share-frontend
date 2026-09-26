@@ -15,6 +15,11 @@ import {
   formatTokenSummary,
   groupTokensForTable,
 } from './ActionSequenceViewer'
+import {
+  type OperationShareTableThemeOverrides,
+  normalizeOperationShareTableColor,
+  normalizeOperationShareTableThemeOverrides,
+} from './operationShareTheme'
 
 export interface OperationShareOperator {
   slot?: number
@@ -61,6 +66,8 @@ export interface OperationShareCardConfig {
   showNotes: boolean
   /** 为已上色的单元格添加底纹；关闭时全部渲染为纯色块。 */
   showCellPattern: boolean
+  tableColor?: string
+  tableThemeOverrides?: OperationShareTableThemeOverrides
   notes: Record<number, string>
   cellColors: Record<string, string>
   requiredDiscs: Record<string, boolean>
@@ -94,7 +101,7 @@ export const OPERATION_SHARE_CELL_PALETTE: Record<
   pink: { hex: '#ffe3ed', pattern: 'vertical' },
   blue: { hex: '#c3e8ff', pattern: 'horizontal' },
   green: { hex: '#e1edc1', pattern: 'diagonal' },
-  ice: { hex: '#edf8ff', pattern: 'dots' },
+  ice: { hex: '#d8e8ee', pattern: 'dots' },
 }
 
 /** cellColors 的取值：颜色名，例如 'yellow'。 */
@@ -206,6 +213,8 @@ export function createOperationShareCardConfig(): OperationShareCardConfig {
     showOtherActions: true,
     showNotes: false,
     showCellPattern: true,
+    tableColor: undefined,
+    tableThemeOverrides: undefined,
     notes: {},
     cellColors: {},
     requiredDiscs: {},
@@ -221,6 +230,13 @@ export function normalizeOperationShareCardConfig(
 ): OperationShareCardConfig {
   const defaults = createOperationShareCardConfig()
   if (!isRecord(value)) return defaults
+
+  const tableColor = normalizeOperationShareTableColor(
+    typeof value.tableColor === 'string' ? value.tableColor : undefined,
+  )
+  const tableThemeOverrides = normalizeOperationShareTableThemeOverrides(
+    value.tableThemeOverrides,
+  )
 
   const notes: Record<number, string> = {}
   if (isRecord(value.notes)) {
@@ -273,6 +289,8 @@ export function normalizeOperationShareCardConfig(
       typeof value.showCellPattern === 'boolean'
         ? value.showCellPattern
         : defaults.showCellPattern,
+    tableColor,
+    tableThemeOverrides,
     notes,
     cellColors,
     requiredDiscs,
@@ -293,6 +311,8 @@ export function buildOperationShareCardConfigPayload(
     showOtherActions: normalized.showOtherActions,
     showNotes: normalized.showNotes,
     showCellPattern: normalized.showCellPattern,
+    tableColor: normalized.tableColor,
+    tableThemeOverrides: normalized.tableThemeOverrides,
     notes: normalized.notes,
     cellColors: normalized.cellColors,
   }
@@ -371,6 +391,8 @@ export function resolveOperationShareCardConfig(
     local.showOtherActions !== defaults.showOtherActions ||
     local.showNotes !== defaults.showNotes ||
     local.showCellPattern !== defaults.showCellPattern ||
+    local.tableColor !== undefined ||
+    local.tableThemeOverrides !== undefined ||
     Object.keys(local.notes).length > 0 ||
     Object.keys(local.cellColors).length > 0
   const hasLocalOperatorOverrides = Object.keys(local.requiredDiscs).length > 0
@@ -398,6 +420,8 @@ export function replaceOperationShareCardConfigKind(
     showOtherActions: replacement.showOtherActions,
     showNotes: replacement.showNotes,
     showCellPattern: replacement.showCellPattern,
+    tableColor: replacement.tableColor,
+    tableThemeOverrides: replacement.tableThemeOverrides,
     notes: replacement.notes,
     cellColors: replacement.cellColors,
   }

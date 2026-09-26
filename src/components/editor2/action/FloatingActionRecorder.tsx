@@ -13,7 +13,6 @@ import {
   RECORDER_SLOT_KEYS,
   appendRecorderToken,
   cloneRoundActions,
-  ensureRecorderRound,
   formatRecorderRoundItem,
   getNextRecorderRound,
   getRecorderRoundNumbers,
@@ -40,7 +39,7 @@ interface RecorderActionButton {
 interface FloatingActionRecorderProps {
   roundActions: RoundActionsInput
   slotAssignments?: MappingOptions['slotAssignments']
-  onSave: (next: RoundActionsInput) => void
+  onChange: (next: RoundActionsInput) => void
 }
 
 const HEADER_CLASS = 'action-recorder-header'
@@ -48,14 +47,18 @@ const MIN_WIDTH = 320
 const MIN_HEIGHT = 420
 const DEFAULT_WIDTH = 480
 const DEFAULT_HEIGHT = 680
+const RECORDER_ROUND_OPTIONS = Array.from(
+  { length: 49 },
+  (_, index) => index + 1,
+)
 
 const TONE_CHIP_CLASS: Record<RecorderButtonTone, string> = {
   ultimate:
-    'border-amber-300 bg-amber-50/70 text-amber-700 hover:bg-amber-100/80 dark:border-amber-600/70 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:bg-amber-500/20',
+    'border-red-300 bg-red-50/70 text-red-700 hover:bg-red-100/80 dark:border-red-600/70 dark:bg-red-500/10 dark:text-red-200 dark:hover:bg-red-500/20',
   normal:
-    'border-blue-300 bg-blue-50/70 text-blue-700 hover:bg-blue-100/80 dark:border-blue-600/70 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/20',
+    'border-amber-300 bg-amber-50/70 text-amber-700 hover:bg-amber-100/80 dark:border-amber-600/70 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:bg-amber-500/20',
   defense:
-    'border-sky-300 bg-sky-50/70 text-sky-700 hover:bg-sky-100/80 dark:border-sky-600/70 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/20',
+    'border-blue-300 bg-blue-50/70 text-blue-700 hover:bg-blue-100/80 dark:border-blue-600/70 dark:bg-blue-500/10 dark:text-blue-200 dark:hover:bg-blue-500/20',
   sp: 'border-lime-300 bg-lime-50/70 text-lime-700 hover:bg-lime-100/80 dark:border-lime-600/70 dark:bg-lime-500/10 dark:text-lime-200 dark:hover:bg-lime-500/20',
   extra:
     'border-violet-300 bg-violet-50/70 text-violet-700 hover:bg-violet-100/80 dark:border-violet-600/70 dark:bg-violet-500/10 dark:text-violet-200 dark:hover:bg-violet-500/20',
@@ -132,22 +135,19 @@ const cloneEntries = (entries: string[][]) =>
 
 const copyRoundInRecorder = (
   input: RoundActionsInput,
-  round: number,
+  sourceRound: number,
+  targetRound = sourceRound,
 ): RoundActionsInput => {
   const result = cloneRoundActions(input)
-  const source = cloneEntries(result[String(round)] ?? [])
+  const source = cloneEntries(result[String(sourceRound)] ?? [])
   const numbers = getRecorderRoundNumbers(result)
   const lastRound = numbers.length > 0 ? Math.max(...numbers) : 0
+  const insertRound = targetRound + 1
 
-  if (round > lastRound) {
-    result[String(round + 1)] = []
-    return result
-  }
-
-  for (let current = lastRound; current >= round; current -= 1) {
+  for (let current = lastRound; current >= insertRound; current -= 1) {
     result[String(current + 1)] = cloneEntries(result[String(current)] ?? [])
   }
-  result[String(round + 1)] = source
+  result[String(insertRound)] = source
   return result
 }
 
@@ -170,28 +170,21 @@ const removeRoundInRecorder = (
 export function FloatingActionRecorder({
   roundActions,
   slotAssignments,
-  onSave,
+  onChange,
 }: FloatingActionRecorderProps) {
   const [size, setSize] = useState(getInitialSize)
   const [position, setPosition] = useState(() => getInitialPosition(size))
   const [visible, setVisible] = useState(false)
-  const [dirty, setDirty] = useState(false)
-  const [draft, setDraft] = useState(() => cloneRoundActions(roundActions))
   const [currentRound, setCurrentRound] = useState(() =>
     getNextRecorderRound(roundActions),
   )
+  const [copySourceRoundInput, setCopySourceRoundInput] = useState('1')
+  const [openRoundMenu, setOpenRoundMenu] = useState<number | null>(null)
   const { width: windowWidth, height: windowHeight } = useWindowSize()
   const breakpoint = useBreakpoint()
   const canDrag = breakpoint !== 'tablet'
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const pendingScrollRoundRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    if (dirty) {
-      return
-    }
-    setDraft(cloneRoundActions(roundActions))
-  }, [dirty, roundActions])
 
   useEffect(() => {
     setSize((current) => ({
@@ -244,7 +237,10 @@ export function FloatingActionRecorder({
     return () => cancelAnimationFrame(frame)
   }, [currentRound, visible])
 
-  const roundNumbers = useMemo(() => getRecorderRoundNumbers(draft), [draft])
+  const roundNumbers = useMemo(
+    () => getRecorderRoundNumbers(roundActions),
+    [roundActions],
+  )
   const maxRound = Math.max(currentRound, ...roundNumbers, 1)
   const roundRows = useMemo(
     () =>
@@ -252,18 +248,17 @@ export function FloatingActionRecorder({
         const round = index + 1
         return {
           round,
-          groups: groupRecorderRoundActions(draft, round),
+          groups: groupRecorderRoundActions(roundActions, round),
         }
       }),
-    [draft, maxRound],
+    [roundActions, maxRound],
   )
 
   const handleAppendToken = useCallback(
     (token: string) => {
-      setDraft((current) => appendRecorderToken(current, currentRound, token))
-      setDirty(true)
+      onChange(appendRecorderToken(roundActions, currentRound, token))
     },
-    [currentRound],
+    [currentRound, onChange, roundActions],
   )
 
   const handlePreviousRound = useCallback(() => {
@@ -273,51 +268,90 @@ export function FloatingActionRecorder({
   const handleNextRound = useCallback(() => {
     const next = currentRound + 1
     pendingScrollRoundRef.current = next
-    setDraft((draftValue) => ensureRecorderRound(draftValue, next))
     setCurrentRound(next)
   }, [currentRound])
 
   const handleJumpToRound = useCallback((round: number) => {
     pendingScrollRoundRef.current = round
     setCurrentRound(round)
+    setOpenRoundMenu(null)
   }, [])
 
   const handleCopyRound = useCallback(
     (round: number) => {
       const nextRound = round + 1
-      setDraft((current) => copyRoundInRecorder(current, round))
+      onChange(copyRoundInRecorder(roundActions, round))
       setCurrentRound(nextRound)
-      setDirty(true)
       pendingScrollRoundRef.current = nextRound
+      setOpenRoundMenu(null)
       AppToaster.show({
         message: `已将第 ${round} 回合复制到第 ${nextRound} 回合`,
         intent: 'success',
       })
     },
-    [],
+    [onChange, roundActions],
+  )
+
+  const handleCopySpecificRound = useCallback(
+    (targetRound: number, sourceRoundValue = copySourceRoundInput) => {
+      const sourceRound = Number(sourceRoundValue)
+      if (
+        !Number.isInteger(sourceRound) ||
+        sourceRound < 1 ||
+        sourceRound > 49
+      ) {
+        AppToaster.show({
+          message: '请输入 1-49 之间的回合数',
+          intent: 'warning',
+        })
+        return
+      }
+      if (
+        !Object.prototype.hasOwnProperty.call(roundActions, String(sourceRound))
+      ) {
+        AppToaster.show({
+          message: `第 ${sourceRound} 回合暂无动作`,
+          intent: 'warning',
+        })
+        return
+      }
+
+      const nextRound = targetRound + 1
+      onChange(copyRoundInRecorder(roundActions, sourceRound, targetRound))
+      setCurrentRound(nextRound)
+      pendingScrollRoundRef.current = nextRound
+      setOpenRoundMenu(null)
+      AppToaster.show({
+        message: `已将第 ${sourceRound} 回合复制到第 ${nextRound} 回合`,
+        intent: 'success',
+      })
+    },
+    [copySourceRoundInput, onChange, roundActions],
   )
 
   const handleDeleteRound = useCallback(
     (round: number) => {
-      const next = removeRoundInRecorder(draft, round)
+      const next = removeRoundInRecorder(roundActions, round)
       const remainingMax = Math.max(1, ...getRecorderRoundNumbers(next))
-      setDraft(next)
+      onChange(next)
       setCurrentRound((currentRound) =>
         Math.max(1, Math.min(currentRound, remainingMax, round)),
       )
-      setDirty(true)
+      setOpenRoundMenu(null)
       AppToaster.show({
         message: `已删除第 ${round} 回合`,
         intent: 'success',
       })
     },
-    [draft],
+    [onChange, roundActions],
   )
 
-  const handleRemoveToken = useCallback((round: number, index: number) => {
-    setDraft((current) => removeRecorderToken(current, round, index))
-    setDirty(true)
-  }, [])
+  const handleRemoveToken = useCallback(
+    (round: number, index: number) => {
+      onChange(removeRecorderToken(roundActions, round, index))
+    },
+    [onChange, roundActions],
+  )
 
   const handleConvertToken = useCallback(
     (
@@ -326,63 +360,37 @@ export function FloatingActionRecorder({
       slot: number,
       kind: RecorderConvertibleTone,
     ) => {
-      setDraft((current) => {
-        const next = cloneRoundActions(current)
-        const key = String(round)
-        const entry = next[key]?.[index]
-        if (!entry) {
-          return current
-        }
-        const token = `${slot}${RECORDER_ACTION_SYMBOL[kind]}`
-        if (entry[0] === token) {
-          return current
-        }
-        next[key][index] = [token, ...entry.slice(1)]
-        return next
-      })
-      setDirty(true)
-    },
-    [],
-  )
-
-  const handleSave = useCallback(
-    (closeAfterSave: boolean) => {
-      onSave(draft)
-      setDirty(false)
-      setCurrentRound(getNextRecorderRound(draft))
-      AppToaster.show({
-        message: closeAfterSave
-          ? '已保存到动作序列并收起快速编辑窗口'
-          : '已保存到动作序列',
-        intent: 'success',
-      })
-      if (closeAfterSave) {
-        setVisible(false)
+      const key = String(round)
+      const entry = roundActions[key]?.[index]
+      if (!entry) {
+        return
       }
+
+      const token = `${slot}${RECORDER_ACTION_SYMBOL[kind]}`
+      if (entry[0] === token) {
+        return
+      }
+
+      const next = cloneRoundActions(roundActions)
+      next[key][index] = [token, ...entry.slice(1)]
+      onChange(next)
     },
-    [draft, onSave],
+    [onChange, roundActions],
   )
 
   const handleHide = useCallback(() => {
     setVisible(false)
-    if (dirty) {
-      AppToaster.show({
-        message: '快速编辑窗口已收起，未保存内容仍保留在窗口中',
-        intent: 'warning',
-      })
-    }
-  }, [dirty])
+  }, [])
 
   if (!visible) {
     return createPortal(
       <Button
         className="!fixed right-4 bottom-4 z-50 shadow-lg"
         icon="annotation"
-        intent={dirty ? 'warning' : 'primary'}
+        intent="primary"
         onClick={() => setVisible(true)}
       >
         快速编辑
-        {dirty ? '（未保存）' : ''}
       </Button>,
       document.body,
     )
@@ -556,15 +564,8 @@ export function FloatingActionRecorder({
                 <div className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
                   快速编辑悬浮窗
                 </div>
-                <div
-                  className={clsx(
-                    'text-[11px]',
-                    dirty
-                      ? 'font-medium text-amber-600 dark:text-amber-300'
-                      : 'text-slate-400 dark:text-slate-500',
-                  )}
-                >
-                  {dirty ? '未保存' : '录制中'}
+                <div className="text-[11px] text-slate-400 dark:text-slate-500">
+                  录制中 · 实时同步到动作序列
                 </div>
               </div>
             </div>
@@ -597,6 +598,21 @@ export function FloatingActionRecorder({
             </div>
 
             <div className="flex-none space-y-1">
+              <div className="grid grid-cols-5 gap-1">
+                {RECORDER_SLOT_KEYS.map((slot) => {
+                  const name = slotAssignments?.[Number(slot)]?.name?.trim()
+                  const label = name ?? `${slot}号位`
+                  return (
+                    <div
+                      key={slot}
+                      className="flex h-6 items-center justify-center px-0.5 text-[11px] font-semibold text-[var(--maayuan-text-strong,#4c1d95)] dark:text-slate-200"
+                      title={label}
+                    >
+                      <span className="truncate">{label}</span>
+                    </div>
+                  )
+                })}
+              </div>
               {RECORDER_BUTTON_ROWS.map((row, rowIndex) => (
                 <div
                   key={rowIndex}
@@ -615,7 +631,6 @@ export function FloatingActionRecorder({
                       )}
                       onClick={() => handleAppendToken(action.token)}
                     >
-                      {action.slot ? <span>{action.slot}</span> : null}
                       <span>{action.label}</span>
                     </button>
                   ))}
@@ -678,8 +693,12 @@ export function FloatingActionRecorder({
                         >
                           <Popover2
                             minimal
+                            isOpen={openRoundMenu === round}
+                            onInteraction={(nextOpen) =>
+                              setOpenRoundMenu(nextOpen ? round : null)
+                            }
                             placement="right-start"
-                            popoverClassName="[&>.bp4-popover2-content]:!p-0 overflow-hidden"
+                            popoverClassName="overflow-hidden [&>.bp4-popover2-content]:!p-0 [&_.bp4-menu]:!min-w-[150px]"
                             content={
                               <Menu>
                                 <MenuItem
@@ -691,6 +710,76 @@ export function FloatingActionRecorder({
                                   icon="duplicate"
                                   text="复制回合"
                                   onClick={() => handleCopyRound(round)}
+                                />
+                                <MenuItem
+                                  icon="duplicate"
+                                  title="复制指定回合并插入到当前回合之后"
+                                  textClassName="flex items-center gap-0.5"
+                                  text={
+                                    <>
+                                      <button
+                                        type="button"
+                                        title="确认复制"
+                                        onClick={(event) => {
+                                          event.stopPropagation()
+                                          handleCopySpecificRound(
+                                            round,
+                                            Number(copySourceRoundInput),
+                                          )
+                                        }}
+                                        className="inline-flex h-5 cursor-pointer items-center border-0 bg-transparent p-0 text-inherit leading-none"
+                                      >
+                                        复制
+                                      </button>
+                                      <span className="relative inline-flex h-5 items-center justify-center gap-0.5 rounded-sm bg-[color-mix(in_srgb,var(--maayuan-accent,#8b5cf6)_8%,transparent)] px-1.5 text-inherit leading-none">
+                                        <span className="pointer-events-none whitespace-nowrap text-center">
+                                          第 {copySourceRoundInput} 回合
+                                        </span>
+                                        <Icon
+                                          icon="caret-down"
+                                          size={11}
+                                          className="pointer-events-none opacity-60"
+                                        />
+                                        <select
+                                          value={copySourceRoundInput}
+                                          onChange={(event) => {
+                                            setCopySourceRoundInput(
+                                              event.target.value,
+                                            )
+                                          }}
+                                          onClick={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          onMouseDown={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          onTouchStart={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          onKeyDown={(event) => {
+                                            event.stopPropagation()
+                                          }}
+                                          className="absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none border-0 bg-transparent p-0 opacity-0 outline-none"
+                                          style={{
+                                            fontFamily: 'inherit',
+                                            fontSize: 'inherit',
+                                          }}
+                                          aria-label="要复制的源回合数"
+                                        >
+                                          {RECORDER_ROUND_OPTIONS.map(
+                                            (roundNumber) => (
+                                              <option
+                                                key={roundNumber}
+                                                value={roundNumber}
+                                              >
+                                                第 {roundNumber} 回合
+                                              </option>
+                                            ),
+                                          )}
+                                        </select>
+                                      </span>
+                                    </>
+                                  }
                                 />
                                 <MenuItem
                                   icon="trash"
@@ -708,8 +797,8 @@ export function FloatingActionRecorder({
                                 currentRound === round &&
                                   'bg-[color-mix(in_srgb,var(--maayuan-accent,#8b5cf6)_55%,var(--maayuan-surface,#fff))] text-[var(--maayuan-text-strong,#4c1d95)] shadow-sm hover:bg-[color-mix(in_srgb,var(--maayuan-accent,#8b5cf6)_55%,var(--maayuan-surface,#fff))] dark:bg-violet-900/50 dark:text-violet-100 dark:hover:bg-violet-900/50',
                               )}
-                              title={`第 ${round} 回合：点击可跳转、复制、删除回合`}
-                              aria-label={`第 ${round} 回合：点击可跳转、复制、删除回合`}
+                              title={`第 ${round} 回合：点击可跳转、复制、复制指定回合或删除回合`}
+                              aria-label={`第 ${round} 回合：点击可跳转、复制、复制指定回合或删除回合`}
                             >
                               {round}
                             </button>
@@ -750,21 +839,13 @@ export function FloatingActionRecorder({
             </div>
           </div>
 
-          <div className="grid flex-none grid-cols-2 gap-2 border-t border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
-            <Button
-              className="w-full"
-              small
-              outlined
-              onClick={() => handleSave(false)}
-            >
-              保存到动作序列
-            </Button>
+          <div className="flex flex-none border-t border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">
             <Button
               className="w-full !border-[var(--maayuan-accent,#8b5cf6)] !bg-[color-mix(in_srgb,var(--maayuan-accent,#8b5cf6)_18%,var(--maayuan-surface,#faf5ff))] !text-[var(--maayuan-text-strong,#4c1d95)] enabled:hover:!brightness-95 dark:!border-violet-700 dark:!bg-violet-900/50 dark:!text-violet-100 dark:enabled:hover:!bg-violet-800"
               small
-              onClick={() => handleSave(true)}
+              onClick={handleHide}
             >
-              保存并关闭
+              关闭悬浮窗
             </Button>
           </div>
         </Card>

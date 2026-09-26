@@ -544,6 +544,11 @@ describe('share image utilities', () => {
     config.showTargetSwitches = false
     config.showOtherActions = false
     config.showNotes = true
+    config.tableColor = '#336699'
+    config.tableThemeOverrides = {
+      border: '#123456',
+      pageBackground: '#fefefd',
+    }
     config.notes[2] = '第二回合先等待'
     config.cellColors['2:slot-3'] = 'blue'
     config.requiredDiscs['2:1'] = true
@@ -567,6 +572,8 @@ describe('share image utilities', () => {
       showOtherActions: true,
       showNotes: true,
       showCellPattern: true,
+      tableColor: undefined,
+      tableThemeOverrides: undefined,
       notes: { 2: '等待技能结束' },
       cellColors: { '2:slot-1': 'pink' },
     })
@@ -596,6 +603,8 @@ describe('share image utilities', () => {
       showOtherActions: true,
       showNotes: true,
       showCellPattern: true,
+      tableColor: undefined,
+      tableThemeOverrides: undefined,
       notes: { 1: '作者备注' },
       cellColors: {},
       requiredDiscs: { '2:1': true },
@@ -625,6 +634,8 @@ describe('share image utilities', () => {
       showOtherActions: false,
       showNotes: false,
       showCellPattern: true,
+      tableColor: undefined,
+      tableThemeOverrides: undefined,
       notes: {},
       cellColors: {},
       requiredDiscs: { '1:1': true },
@@ -646,6 +657,7 @@ describe('share image utilities', () => {
           showTargetSwitches: false,
           showOtherActions: false,
           showNotes: true,
+          tableColor: '#369',
           notes: { 1: 'x'.repeat(200), invalid: 3 },
           cellColors: {
             '1:others': '#F4D9D1',
@@ -671,6 +683,8 @@ describe('share image utilities', () => {
       showOtherActions: false,
       showNotes: true,
       showCellPattern: true,
+      tableColor: '#336699',
+      tableThemeOverrides: undefined,
       notes: { 1: 'x'.repeat(160) },
       cellColors: {
         '3:slot-1': 'green',

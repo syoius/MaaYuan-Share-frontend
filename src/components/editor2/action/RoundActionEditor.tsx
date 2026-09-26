@@ -637,7 +637,7 @@ export const ActionEditor: FC<ActionEditorProps> = ({ className }) => {
     [applyRoundActions],
   );
 
-  const handleRecorderSave = useCallback(
+  const handleRecorderChange = useCallback(
     (next: RoundActionsInput) => {
       applyRoundActions(() => next);
     },
@@ -1358,7 +1358,7 @@ export const ActionEditor: FC<ActionEditorProps> = ({ className }) => {
       <FloatingActionRecorder
         roundActions={roundActions}
         slotAssignments={slotAssignments}
-        onSave={handleRecorderSave}
+        onChange={handleRecorderChange}
       />
     </div>
   );

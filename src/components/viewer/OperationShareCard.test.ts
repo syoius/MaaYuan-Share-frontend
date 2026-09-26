@@ -16,6 +16,10 @@ import {
   type OperationShareModel,
   createOperationShareCardConfig,
 } from './operationShareModel'
+import {
+  OPERATION_SHARE_TABLE_THEME_PRESETS,
+  getOperationShareTableTheme,
+} from './operationShareTheme'
 
 const model: OperationShareModel = {
   title: '测试作业',
@@ -33,6 +37,37 @@ const model: OperationShareModel = {
 }
 
 describe('operation share card styles', () => {
+  it('keeps table theme presets distinct from action cell colors', () => {
+    const actionCellColors = new Set(
+      Object.values(OPERATION_SHARE_CELL_PALETTE).map(({ hex }) =>
+        hex.toLowerCase(),
+      ),
+    )
+    const tableThemeColors = OPERATION_SHARE_TABLE_THEME_PRESETS.flatMap(
+      ({ baseColor }) => {
+        const theme = getOperationShareTableTheme(baseColor)
+        return [
+          theme.headerBackground,
+          theme.bodyBackgrounds[0],
+          theme.bodyBackgrounds[1],
+          theme.border,
+        ]
+      },
+    )
+
+    expect(OPERATION_SHARE_TABLE_THEME_PRESETS.map(({ id }) => id)).toEqual([
+      'native',
+      'blue',
+      'green',
+      'orange',
+      'purple',
+      'pink',
+    ])
+    tableThemeColors.forEach((color) => {
+      expect(actionCellColors.has(color.toLowerCase())).toBe(false)
+    })
+  })
+
   it('hides the QR code by default and can show it', () => {
     const defaultMarkup = renderToStaticMarkup(
       createElement(OperationShareCard, {
@@ -124,6 +159,82 @@ describe('operation share card styles', () => {
     ).toBe('blue')
   })
 
+  it('derives alternating table colors from a custom base color', () => {
+    const tableTheme = getOperationShareTableTheme('#336699')
+
+    expect(tableTheme.bodyBackgrounds).toEqual(['#c2d1e0', '#8fabc7'])
+    expect(getOperationShareActionCellBackground({}, 1, 1, '#336699')).toBe(
+      tableTheme.bodyBackgrounds[0],
+    )
+    expect(getOperationShareActionCellBackground({}, 2, 1, '#336699')).toBe(
+      tableTheme.bodyBackgrounds[1],
+    )
+    expect(tableTheme.pageBackground).toBe('#f3f6f9')
+    expect(
+      getOperationShareCellVisualStyle(
+        tableTheme.bodyBackgrounds[0],
+        false,
+        tableTheme,
+      ),
+    ).toEqual({
+      backgroundColor: tableTheme.bodyBackgrounds[0],
+      color: tableTheme.text,
+    })
+  })
+
+  it('uses a muted pink table theme instead of the action cell pink', () => {
+    const tableTheme = getOperationShareTableTheme('#a8607b')
+
+    expect(tableTheme.headerBackground).toBe('#e8d6dd')
+    expect(tableTheme.bodyBackgrounds).toEqual(['#faf5f7', '#ecdce2'])
+    expect(tableTheme.bodyBackgrounds).not.toContain('#ffe3ed')
+  })
+
+  it('keeps the green table light row paler than the action cell green', () => {
+    const tableTheme = getOperationShareTableTheme('#4b7d5b')
+
+    expect(tableTheme.bodyBackgrounds[0]).toBe('#f4f7f5')
+    expect(tableTheme.bodyBackgrounds).not.toContain('#e1edc1')
+  })
+
+  it('keeps the blue table light row distinct from the ice action cell', () => {
+    const tableTheme = getOperationShareTableTheme('#4d6fa8')
+
+    expect(tableTheme.bodyBackgrounds[0]).toBe('#f8f9fc')
+    expect(tableTheme.bodyBackgrounds).not.toContain('#d8e8ee')
+  })
+
+  it('keeps an individually colored cell above the table theme', () => {
+    expect(
+      getOperationShareActionCellBackground(
+        { '2:slot-1': 'blue' },
+        2,
+        1,
+        '#336699',
+      ),
+    ).toBe('blue')
+  })
+
+  it('applies individual table theme overrides on top of the base color', () => {
+    const tableTheme = getOperationShareTableTheme('#336699', {
+      border: '#123456',
+      darkRowBackground: '#eeeeee',
+      headerBackground: '#f4f4f4',
+      lightRowBackground: '#fafafa',
+      pageBackground: '#fffefd',
+      text: '#222222',
+    })
+
+    expect(tableTheme).toMatchObject({
+      bodyBackgrounds: ['#fafafa', '#eeeeee'],
+      border: '#123456',
+      headerBackground: '#f4f4f4',
+      headerText: '#222222',
+      pageBackground: '#fffefd',
+      text: '#222222',
+    })
+  })
+
   it('adds a distinct pattern to every color only when the switch is on', () => {
     const plain = OPERATION_SHARE_CELL_COLOR_KEYS.map((colorKey) =>
       getOperationShareCellVisualStyle(colorKey, false),
@@ -176,12 +287,12 @@ describe('operation share card styles', () => {
       )
 
     const patternedMarkup = renderCard(true)
-    expect(patternedMarkup).toContain('background-color:#edf8ff')
+    expect(patternedMarkup).toContain('background-color:#d8e8ee')
     expect(patternedMarkup).toContain('background-image:radial-gradient')
     expect(patternedMarkup).toContain('color:#231f20')
 
     const plainMarkup = renderCard(false)
-    expect(plainMarkup).toContain('background-color:#edf8ff')
+    expect(plainMarkup).toContain('background-color:#d8e8ee')
     expect(plainMarkup).not.toContain('background-image:')
   })
 

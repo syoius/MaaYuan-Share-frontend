@@ -46,11 +46,13 @@ export async function renderOperationShareCardBlob(
 ) {
   await waitForOperationShareCardResources(node)
   const { toBlob } = await import('html-to-image')
+  const backgroundColor =
+    window.getComputedStyle(node).backgroundColor || '#ffffff'
   const blob = await toBlob(node, {
-    backgroundColor: '#f6f3eb',
+    backgroundColor,
     cacheBust: true,
     pixelRatio,
-    skipFonts: true,
+    skipFonts: false,
     // 与 shareCardComponents.tsx 的 shareCardStyle.width:1080 固定定宽保持一致
     width: 1080,
   })

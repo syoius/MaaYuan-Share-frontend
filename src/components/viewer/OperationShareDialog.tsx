@@ -3,6 +3,7 @@ import {
   Callout,
   Checkbox,
   Dialog,
+  Icon,
   Spinner,
   Switch,
 } from '@blueprintjs/core'
@@ -56,6 +57,13 @@ import {
   saveOperationShareShortCode,
   updateOperationShareCellSelection,
 } from './operationShareModel'
+import {
+  DEFAULT_OPERATION_SHARE_TABLE_BASE_COLOR,
+  OPERATION_SHARE_TABLE_THEME_PRESETS,
+  type OperationShareTableThemeOverrideKey,
+  getOperationShareTableTheme,
+  normalizeOperationShareTableColor,
+} from './operationShareTheme'
 
 type GenerationStatus = 'idle' | 'generating' | 'ready' | 'error'
 
@@ -122,6 +130,8 @@ export default function OperationShareDialog({
     targetUrl: string
     dataUrl: string
   }>()
+  const [isTableThemeAdvancedOpen, setIsTableThemeAdvancedOpen] =
+    useState(false)
   const qrDataUrl =
     qrCode?.targetUrl === model.qrTargetUrl ? qrCode.dataUrl : undefined
   const [error, setError] = useState<string>()
@@ -253,6 +263,41 @@ export default function OperationShareDialog({
   ) => {
     invalidatePreview()
     updateCardConfig((current) => ({ ...current, [option]: checked }))
+  }
+
+  const updateTableColor = (color?: string) => {
+    invalidatePreview()
+    updateCardConfig((current) => ({
+      ...current,
+      tableColor: normalizeOperationShareTableColor(color),
+      tableThemeOverrides: undefined,
+    }))
+  }
+
+  const updateTableThemeOverride = (
+    key: OperationShareTableThemeOverrideKey,
+    color: string,
+  ) => {
+    invalidatePreview()
+    updateCardConfig((current) => {
+      const tableThemeOverrides = { ...current.tableThemeOverrides }
+      const normalizedColor = normalizeOperationShareTableColor(color)
+      if (normalizedColor) tableThemeOverrides[key] = normalizedColor
+      else delete tableThemeOverrides[key]
+
+      return {
+        ...current,
+        tableThemeOverrides:
+          Object.keys(tableThemeOverrides).length > 0
+            ? tableThemeOverrides
+            : undefined,
+      }
+    })
+  }
+
+  const resetTableTheme = () => {
+    setIsTableThemeAdvancedOpen(false)
+    updateTableColor()
   }
 
   const changeCardKind = (nextKind: OperationShareCardKind) => {
@@ -425,6 +470,72 @@ export default function OperationShareDialog({
     currentRemoteConfig !== undefined &&
     currentRemoteConfig.schemaVersion >
       OPERATION_SHARE_CARD_CONFIG_SCHEMA_VERSION
+  const shareTableTheme = getOperationShareTableTheme(
+    cardConfig.tableColor,
+    cardConfig.tableThemeOverrides,
+  )
+  const normalizedTableColor = normalizeOperationShareTableColor(
+    cardConfig.tableColor,
+  )
+  const matchingTableThemePreset = normalizedTableColor
+    ? OPERATION_SHARE_TABLE_THEME_PRESETS.find(
+        (preset) =>
+          preset.baseColor &&
+          normalizeOperationShareTableColor(preset.baseColor) ===
+            normalizedTableColor,
+      )
+    : undefined
+  const selectedTableThemePreset =
+    matchingTableThemePreset ?? OPERATION_SHARE_TABLE_THEME_PRESETS[0]
+  const isCustomTableBaseColor = Boolean(
+    normalizedTableColor && !matchingTableThemePreset,
+  )
+  const tableThemeOverrideCount = Object.keys(
+    cardConfig.tableThemeOverrides ?? {},
+  ).length
+  const hasTableThemeOverrides = tableThemeOverrideCount > 0
+  const tableThemeBaseLabel = isCustomTableBaseColor
+    ? `自定义 ${normalizedTableColor}`
+    : selectedTableThemePreset.label
+  const tableThemeStatus = hasTableThemeOverrides
+    ? `自定义（基于${tableThemeBaseLabel}，已修改 ${tableThemeOverrideCount} 项）`
+    : `当前：${tableThemeBaseLabel}`
+  const tableThemeColorFields: Array<{
+    key: OperationShareTableThemeOverrideKey
+    label: string
+    value: string
+  }> = [
+    {
+      key: 'headerBackground',
+      label: '表头',
+      value: shareTableTheme.headerBackground,
+    },
+    {
+      key: 'pageBackground',
+      label: '图片背景',
+      value: shareTableTheme.pageBackground,
+    },
+    {
+      key: 'lightRowBackground',
+      label: '浅色行',
+      value: shareTableTheme.bodyBackgrounds[0],
+    },
+    {
+      key: 'darkRowBackground',
+      label: '深色行',
+      value: shareTableTheme.bodyBackgrounds[1],
+    },
+    {
+      key: 'border',
+      label: '表格线',
+      value: shareTableTheme.border,
+    },
+    {
+      key: 'text',
+      label: '文字',
+      value: shareTableTheme.text,
+    },
+  ]
 
   const saveAuthorConfig = async () => {
     if (!canManageAuthorConfig || hasUnsupportedRemoteConfig) return
@@ -567,7 +678,7 @@ export default function OperationShareDialog({
                   </Button>
                 </div>
                 <p className="mt-1 text-sm text-slate-500">
-                  配置会按当前作业自动缓存；可设置展示内容、逐回合备注和单元格颜色。
+                  配置会自动保存到当前作业。
                 </p>
               </div>
               <div className="flex flex-wrap gap-x-5 gap-y-2">
@@ -601,6 +712,150 @@ export default function OperationShareDialog({
                 />
               </div>
             </div>
+
+            {model.rounds.length > 0 ? (
+              <div className="mt-4 border-t border-slate-200 pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="text-sm font-semibold text-slate-700">
+                    表格配色
+                  </h4>
+                  <Button
+                    aria-label="恢复预设表格配色"
+                    disabled={!normalizedTableColor && !hasTableThemeOverrides}
+                    icon="reset"
+                    minimal
+                    onClick={resetTableTheme}
+                    small
+                  >
+                    恢复预设
+                  </Button>
+                </div>
+                <p className="mt-1 text-xs text-slate-400">
+                  选择生成作业分享图整体的主题色，可自定义颜色。
+                  <span aria-live="polite" className="ml-2 text-slate-500">
+                    {tableThemeStatus}
+                  </span>
+                </p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="mr-0.5 text-xs text-slate-400">预设</span>
+                  {OPERATION_SHARE_TABLE_THEME_PRESETS.map((preset) => {
+                    const presetTheme = getOperationShareTableTheme(
+                      preset.baseColor,
+                    )
+                    const selected =
+                      selectedTableThemePreset.id === preset.id &&
+                      (preset.baseColor !== undefined ||
+                        cardConfig.tableColor === undefined)
+                    const previewColor = presetTheme.bodyBackgrounds[1]
+
+                    return (
+                      <button
+                        key={preset.id}
+                        aria-label={`应用${preset.label}表格配色`}
+                        aria-pressed={selected}
+                        className={`flex h-7 items-center gap-1.5 rounded border px-1.5 text-xs transition-colors ${
+                          selected
+                            ? 'border-sky-500 bg-sky-50 text-sky-800'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                        onClick={() => updateTableColor(preset.baseColor)}
+                        type="button"
+                      >
+                        <span
+                          aria-hidden
+                          className="flex h-3 w-3 shrink-0 overflow-hidden rounded-[2px] border border-black/10"
+                        >
+                          <span
+                            className="h-full w-full"
+                            style={{ backgroundColor: previewColor }}
+                          />
+                        </span>
+                        <span>{preset.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <label className="flex h-7 items-center gap-2 rounded border border-slate-200 bg-slate-50 px-2 text-xs text-slate-600">
+                    <span>自定义</span>
+                    <input
+                      aria-label="选择表格主题色"
+                      className="h-5 w-7 cursor-pointer rounded-sm border-0 bg-transparent p-0"
+                      onChange={(event) =>
+                        updateTableColor(event.currentTarget.value)
+                      }
+                      type="color"
+                      value={
+                        cardConfig.tableColor ??
+                        DEFAULT_OPERATION_SHARE_TABLE_BASE_COLOR
+                      }
+                    />
+                    <span className="tabular-nums text-slate-500">
+                      {cardConfig.tableColor ?? '默认'}
+                    </span>
+                  </label>
+                  <Button
+                    aria-controls="operation-share-table-theme-advanced"
+                    aria-expanded={isTableThemeAdvancedOpen}
+                    aria-label={
+                      isTableThemeAdvancedOpen
+                        ? '收起高级自定义'
+                        : '展开高级自定义'
+                    }
+                    className="!text-xs !font-normal !text-slate-500 hover:!text-slate-700"
+                    icon={
+                      <Icon
+                        icon={
+                          isTableThemeAdvancedOpen
+                            ? 'chevron-up'
+                            : 'chevron-down'
+                        }
+                        size={12}
+                      />
+                    }
+                    minimal
+                    onClick={() =>
+                      setIsTableThemeAdvancedOpen((current) => !current)
+                    }
+                    small
+                  >
+                    高级自定义
+                    {hasTableThemeOverrides
+                      ? `（已修改 ${tableThemeOverrideCount} 项）`
+                      : ''}
+                  </Button>
+                </div>
+                {isTableThemeAdvancedOpen ? (
+                  <div
+                    className="mt-2 w-fit max-w-full rounded border border-slate-200 bg-slate-50 p-2"
+                    id="operation-share-table-theme-advanced"
+                  >
+                    <div className="flex flex-wrap items-center gap-1 text-xs text-slate-600">
+                      {tableThemeColorFields.map(({ key, label, value }) => (
+                        <label
+                          key={key}
+                          className="flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded border border-slate-200 bg-white px-1.5"
+                        >
+                          <input
+                            aria-label={`${label}颜色`}
+                            className="h-4 w-6 shrink-0 cursor-pointer rounded-sm border border-black/10 bg-transparent p-0"
+                            onChange={(event) =>
+                              updateTableThemeOverride(
+                                key,
+                                event.currentTarget.value,
+                              )
+                            }
+                            type="color"
+                            value={value}
+                          />
+                          <span>{label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {cardConfig.showNotes && model.rounds.length > 0 ? (
               <div className="mt-4 border-t border-slate-200 pt-4">

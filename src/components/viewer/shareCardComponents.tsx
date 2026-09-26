@@ -29,7 +29,8 @@ const shareCardStyle: CSSProperties = {
   background: shareCardPalette.paper,
   color: shareCardPalette.ink,
   padding: '52px 52px 40px',
-  fontFamily: 'Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
+  fontFamily:
+    '"MaaYuan Arrow Symbols", Inter, "PingFang SC", "Microsoft YaHei", sans-serif',
 }
 
 const STAR_LEVELS = [1, 2, 3, 4, 5] as const
@@ -101,6 +102,7 @@ export function ShareSectionTitle({ children }: { children: string }) {
 }
 
 export function ShareCardFrame({
+  backgroundColor = shareCardPalette.paper,
   cardRef,
   children,
   eyebrow,
@@ -109,6 +111,7 @@ export function ShareCardFrame({
   qrDataUrl,
   showShortCode,
 }: {
+  backgroundColor?: string
   cardRef?: Ref<HTMLDivElement>
   children: ReactNode
   eyebrow: string
@@ -123,7 +126,10 @@ export function ShareCardFrame({
       : { label: '原创', background: '#d8e9e4', color: '#155d57' }
 
   return (
-    <div ref={cardRef} style={shareCardStyle}>
+    <div
+      ref={cardRef}
+      style={{ ...shareCardStyle, background: backgroundColor }}
+    >
       <header className="flex items-start justify-between gap-8">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3">

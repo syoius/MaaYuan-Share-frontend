@@ -236,6 +236,185 @@ describe('operation share dialog short code switch', () => {
     })
   })
 
+  it('persists a custom table color', async () => {
+    await renderDialog(
+      createOperation(
+        CopilotInfoStatusEnum.Public,
+        undefined,
+        singleRoundActions,
+      ),
+    )
+
+    const colorInput = document.querySelector(
+      'input[type="color"][aria-label="选择表格主题色"]',
+    ) as HTMLInputElement
+
+    await act(async () => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      valueSetter?.call(colorInput, '#336699')
+      colorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+
+    expect(readOperationShareCardConfig(100)?.tableColor).toBe('#336699')
+    expect(document.body.textContent).toContain('当前：自定义 #336699')
+  })
+
+  it('applies a preset table theme without changing action cell colors', async () => {
+    await renderDialog(
+      createOperation(
+        CopilotInfoStatusEnum.Public,
+        undefined,
+        singleRoundActions,
+      ),
+    )
+
+    await act(async () => {
+      findSwatch('应用蓝色表格配色')?.click()
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+
+    expect(readOperationShareCardConfig(100)?.tableColor).toBe('#4d6fa8')
+    expect(readOperationShareCardConfig(100)?.cellColors).toEqual({})
+  })
+
+  it('resets to the native table theme preset', async () => {
+    await renderDialog(
+      createOperation(
+        CopilotInfoStatusEnum.Public,
+        undefined,
+        singleRoundActions,
+      ),
+    )
+
+    await act(async () => {
+      findSwatch('应用紫色表格配色')?.click()
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+    await act(async () => {
+      findSwatch('应用原生表格配色')?.click()
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+
+    expect(readOperationShareCardConfig(100)?.tableColor).toBeUndefined()
+  })
+
+  it('keeps the advanced table theme controls collapsed by default', async () => {
+    await renderDialog(
+      createOperation(
+        CopilotInfoStatusEnum.Public,
+        undefined,
+        singleRoundActions,
+      ),
+    )
+
+    expect(findSwatch('展开高级自定义')?.getAttribute('aria-expanded')).toBe(
+      'false',
+    )
+    expect(
+      document.querySelector('input[type="color"][aria-label="图片背景颜色"]'),
+    ).toBeNull()
+    expect(document.body.textContent).toContain('当前：原生')
+
+    await act(async () => {
+      findSwatch('展开高级自定义')?.click()
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+
+    expect(findSwatch('收起高级自定义')?.getAttribute('aria-expanded')).toBe(
+      'true',
+    )
+    expect(
+      document.querySelector('input[type="color"][aria-label="图片背景颜色"]'),
+    ).toBeDefined()
+  })
+
+  it('persists an individual table color override', async () => {
+    await renderDialog(
+      createOperation(
+        CopilotInfoStatusEnum.Public,
+        undefined,
+        singleRoundActions,
+      ),
+    )
+
+    await act(async () => {
+      findSwatch('展开高级自定义')?.click()
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+
+    const colorInput = document.querySelector(
+      'input[type="color"][aria-label="图片背景颜色"]',
+    ) as HTMLInputElement
+
+    await act(async () => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      valueSetter?.call(colorInput, '#fefefd')
+      colorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+
+    expect(
+      readOperationShareCardConfig(100)?.tableThemeOverrides?.pageBackground,
+    ).toBe('#fefefd')
+    expect(document.body.textContent).toContain(
+      '自定义（基于原生，已修改 1 项）',
+    )
+  })
+
+  it('restores the preset and clears every table theme override', async () => {
+    await renderDialog(
+      createOperation(
+        CopilotInfoStatusEnum.Public,
+        undefined,
+        singleRoundActions,
+      ),
+    )
+
+    await act(async () => {
+      findSwatch('应用蓝色表格配色')?.click()
+      findSwatch('展开高级自定义')?.click()
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+
+    const colorInput = document.querySelector(
+      'input[type="color"][aria-label="图片背景颜色"]',
+    ) as HTMLInputElement
+
+    await act(async () => {
+      const valueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      valueSetter?.call(colorInput, '#fefefd')
+      colorInput.dispatchEvent(new Event('input', { bubbles: true }))
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+
+    expect(readOperationShareCardConfig(100)?.tableColor).toBe('#4d6fa8')
+    expect(
+      readOperationShareCardConfig(100)?.tableThemeOverrides?.pageBackground,
+    ).toBe('#fefefd')
+
+    await act(async () => {
+      findSwatch('恢复预设表格配色')?.click()
+      await new Promise((resolve) => window.setTimeout(resolve, 0))
+    })
+
+    expect(readOperationShareCardConfig(100)?.tableColor).toBeUndefined()
+    expect(
+      readOperationShareCardConfig(100)?.tableThemeOverrides,
+    ).toBeUndefined()
+    expect(document.body.textContent).toContain('当前：原生')
+    expect(findSwatch('展开高级自定义')).toBeDefined()
+  })
+
   it('toggles the cell pattern switch and persists it', async () => {
     await renderDialog(
       createOperation(

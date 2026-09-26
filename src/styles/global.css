@@ -1,3 +1,13 @@
+/* Use a heavier bundled glyph for arrows on Windows. */
+@font-face {
+  font-family: 'MaaYuan Arrow Symbols';
+  src: url('/fonts/maayuan-arrows-dejavu-bold.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range: U+2190-21FF;
+}
+
 body {
   margin: 0;
   font-family:
@@ -5,6 +15,33 @@ body {
     'PingFang SC', 'Hiragino Sans GB', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.platform--windows body {
+  font-family:
+    'MaaYuan Arrow Symbols', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', 'Helvetica Neue',
+    sans-serif;
+}
+
+.platform--windows .font-sans {
+  font-family:
+    'MaaYuan Arrow Symbols', ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+.platform--windows .font-serif {
+  font-family:
+    'MaaYuan Arrow Symbols', ui-serif, Georgia, Cambria, 'Times New Roman',
+    Times, serif;
+}
+
+.platform--windows .font-mono {
+  font-family:
+    'MaaYuan Arrow Symbols', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
 /* 全局横向溢出兜底：用小屏编辑器/列表等固定宽控件溢出时阻止整页横向滚动。
