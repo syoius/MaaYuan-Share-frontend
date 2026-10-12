@@ -235,7 +235,7 @@ describe('operation share card styles', () => {
     )
 
     expect(markup).toContain('粉色表示关键操作')
-    expect(markup).toContain('打 2 号敌人')
+    expect(markup).toContain('2号敌人')
     expect(markup).not.toContain('打 1 号敌人')
   })
 

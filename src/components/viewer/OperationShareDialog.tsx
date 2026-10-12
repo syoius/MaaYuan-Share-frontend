@@ -2628,9 +2628,10 @@ export default function OperationShareDialog({
                                       : 'p-1'
                                   }`}
                                 >
+                                  {/* 富文本颜色按浅色分享图校验，编辑画布也保持浅色。 */}
                                   <OperationShareNoteEditor
                                     ariaLabel={`${round.round} 回合备注`}
-                                    className={`block w-full resize-y overflow-y-auto whitespace-pre-wrap break-words rounded border border-slate-300 bg-white text-slate-800 outline-none focus:border-sky-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50 ${
+                                    className={`block w-full resize-y overflow-y-auto whitespace-pre-wrap break-words rounded border border-slate-300 bg-white text-slate-800 outline-none focus:border-sky-500 dark:border-slate-600 ${
                                       isMobileDevice ? 'min-w-0' : ''
                                     } ${
                                       effectiveEditMode === 'note'

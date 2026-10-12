@@ -234,7 +234,7 @@ describe('operation share dialog short code switch', () => {
     expect(findSwatch('应用无操作色')).toBeDefined()
     expect(findSwatch('应用无操作色')?.style.backgroundColor).not.toBe('')
     const noneNoteInput = document.querySelector(
-      'input[aria-label="无色颜色说明"]',
+      'input[aria-label="无色敌方名称备注"]',
     ) as HTMLInputElement | null
 
     expect(noneNoteInput).not.toBeNull()
@@ -310,11 +310,12 @@ describe('operation share dialog short code switch', () => {
     )
 
     const pinkNoteInput = document.querySelector(
-      'input[aria-label="粉色颜色说明"]',
+      'input[aria-label="粉色敌方名称备注"]',
     ) as HTMLInputElement | null
 
     expect(pinkNoteInput).not.toBeNull()
-    expect(pinkNoteInput?.value).toBe('打 1 号敌人')
+    expect(pinkNoteInput?.value).toBe('')
+    expect(pinkNoteInput?.placeholder).toBe('1号敌人')
 
     await act(async () => {
       const valueSetter = Object.getOwnPropertyDescriptor(
@@ -404,8 +405,8 @@ describe('operation share dialog short code switch', () => {
     )
 
     const colorNoteInput = document.querySelector(
-      'textarea[placeholder="修改本回合备注"]',
-    ) as HTMLTextAreaElement | null
+      '[contenteditable][aria-label="1 回合备注"]',
+    ) as HTMLDivElement | null
 
     expect(colorNoteInput).not.toBeNull()
     expect(findSwatch('应用黄色')).toBeDefined()
@@ -413,11 +414,7 @@ describe('operation share dialog short code switch', () => {
     expect(findButtonByAriaLabelPrefix('从备注移除')).toBeUndefined()
 
     await act(async () => {
-      const valueSetter = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype,
-        'value',
-      )?.set
-      valueSetter?.call(colorNoteInput, '标注模式下编辑备注')
+      if (colorNoteInput) colorNoteInput.textContent = '标注模式下编辑备注'
       colorNoteInput?.dispatchEvent(new Event('input', { bubbles: true }))
       await new Promise((resolve) => window.setTimeout(resolve, 0))
     })
@@ -432,8 +429,8 @@ describe('operation share dialog short code switch', () => {
     })
 
     const noteInput = document.querySelector(
-      'textarea[placeholder="修改本回合备注"]',
-    ) as HTMLTextAreaElement | null
+      '[contenteditable][aria-label="1 回合备注"]',
+    ) as HTMLDivElement | null
     const noteCell = noteInput?.closest('td')
     const noteTable = noteCell?.closest('table')
     const noteColumn = noteTable?.querySelector('colgroup col:last-child')
@@ -451,11 +448,7 @@ describe('operation share dialog short code switch', () => {
     expect(findButtonByAriaLabelPrefix('按单元格标色')).toBeUndefined()
 
     await act(async () => {
-      const valueSetter = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype,
-        'value',
-      )?.set
-      valueSetter?.call(noteInput, '3A 后检测退场')
+      if (noteInput) noteInput.textContent = '3A 后检测退场'
       noteInput?.dispatchEvent(new Event('input', { bubbles: true }))
       await new Promise((resolve) => window.setTimeout(resolve, 0))
     })
@@ -470,11 +463,11 @@ describe('operation share dialog short code switch', () => {
     })
 
     const colorNoteInputAfterSwitch = document.querySelector(
-      'textarea[placeholder="修改本回合备注"]',
-    ) as HTMLTextAreaElement | null
+      '[contenteditable][aria-label="1 回合备注"]',
+    ) as HTMLDivElement | null
 
     expect(colorNoteInputAfterSwitch).not.toBeNull()
-    expect(colorNoteInputAfterSwitch?.value).toBe('3A 后检测退场')
+    expect(colorNoteInputAfterSwitch?.textContent).toBe('3A 后检测退场')
     expect(findSwatch('应用黄色')).toBeDefined()
     expect(findButtonByAriaLabelPrefix('按操作标色')).toBeDefined()
     expect(findButtonByAriaLabelPrefix('按单元格标色')).toBeDefined()

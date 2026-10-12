@@ -52,6 +52,7 @@ function isAllowedNoteFontSize(value: string) {
   const size = Number.parseFloat(value)
   return (
     Number.isFinite(size) &&
+    /^\d+(?:\.\d+)?px$/i.test(value) &&
     size >= NOTE_MIN_FONT_SIZE &&
     size <= NOTE_MAX_FONT_SIZE
   )
@@ -70,46 +71,68 @@ function getLegacyFontSize(value: string | null) {
   return value ? sizeMap[value] : undefined
 }
 
+function getNoteNodeStyle(node: Element): CSSProperties {
+  const tagName = node.tagName.toLowerCase()
+  const style: CSSProperties = {}
+  if (tagName === 'font') {
+    const color = node.getAttribute('color')
+    const fontSize = getLegacyFontSize(node.getAttribute('size'))
+    if (color && isAllowedNoteColor(color)) style.color = color
+    if (fontSize) style.fontSize = fontSize
+  } else if (tagName === 'span') {
+    const color = (node as HTMLElement).style.color
+    const fontSize = (node as HTMLElement).style.fontSize
+    const backgroundColor = (node as HTMLElement).style.backgroundColor
+    if (color && isAllowedNoteColor(color)) style.color = color
+    if (fontSize && isAllowedNoteFontSize(fontSize)) style.fontSize = fontSize
+    if (backgroundColor && isAllowedNoteColor(backgroundColor)) {
+      style.backgroundColor = backgroundColor
+    }
+  }
+
+  return style
+}
+
+function createSafeNoteNodes(nodes: NodeListOf<ChildNode>): Node[] {
+  return Array.from(nodes).flatMap((node): Node[] => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return [document.createTextNode(node.textContent ?? '')]
+    }
+    if (!(node instanceof Element)) return []
+    const tagName = node.tagName.toLowerCase()
+    const children = createSafeNoteNodes(node.childNodes)
+    const style = getNoteNodeStyle(node)
+    if (
+      !['b', 'strong', 'i', 'em', 'div', 'p', 'br', 'span', 'font'].includes(
+        tagName,
+      )
+    ) {
+      return children
+    }
+    const element = document.createElement(
+      tagName === 'font' ? 'span' : tagName,
+    )
+    Object.assign(element.style, style)
+    element.append(...children)
+    return [element]
+  })
+}
+
 function renderNoteNodes(nodes: NodeListOf<ChildNode>, keyPrefix: string) {
   return Array.from(nodes).map((node, index) => {
     const key = `${keyPrefix}-${index}`
-
-    if (node.nodeType === 3) {
-      return node.textContent ?? ''
-    }
+    if (node.nodeType === 3) return node.textContent ?? ''
     if (!(node instanceof Element)) return null
-
     const tagName = node.tagName.toLowerCase()
     if (tagName === 'br') return <br key={key} />
-
     const children = renderNoteNodes(node.childNodes, key)
-    if (tagName === 'b' || tagName === 'strong') {
+    if (tagName === 'b' || tagName === 'strong')
       return <strong key={key}>{children}</strong>
-    }
-    if (tagName === 'i' || tagName === 'em') {
+    if (tagName === 'i' || tagName === 'em')
       return <em key={key}>{children}</em>
-    }
-    if (tagName === 'div' || tagName === 'p') {
+    if (tagName === 'div' || tagName === 'p')
       return <div key={key}>{children}</div>
-    }
-
-    const style: CSSProperties = {}
-    if (tagName === 'font') {
-      const color = node.getAttribute('color')
-      const fontSize = getLegacyFontSize(node.getAttribute('size'))
-      if (color && isAllowedNoteColor(color)) style.color = color
-      if (fontSize) style.fontSize = fontSize
-    } else if (tagName === 'span') {
-      const color = (node as HTMLElement).style.color
-      const fontSize = (node as HTMLElement).style.fontSize
-      const backgroundColor = (node as HTMLElement).style.backgroundColor
-      if (color && isAllowedNoteColor(color)) style.color = color
-      if (fontSize && isAllowedNoteFontSize(fontSize)) style.fontSize = fontSize
-      if (backgroundColor && isAllowedNoteColor(backgroundColor)) {
-        style.backgroundColor = backgroundColor
-      }
-    }
-
+    const style = getNoteNodeStyle(node)
     if (Object.keys(style).length === 0) return children
     return (
       <span key={key} style={style}>
@@ -121,7 +144,11 @@ function renderNoteNodes(nodes: NodeListOf<ChildNode>, keyPrefix: string) {
 
 export function OperationShareNoteContent({ value }: { value: string }) {
   const content = useMemo(() => {
-    if (!value || typeof document === 'undefined' || !/<[a-z][\s\S]*>/i.test(value)) {
+    if (
+      !value ||
+      typeof document === 'undefined' ||
+      !/<[a-z][\s\S]*>/i.test(value)
+    ) {
       return value
     }
 
@@ -395,10 +422,7 @@ function setNoteRangeStyle(
   return wrapNoteRangeWithStyle(range, property, nextValue)
 }
 
-function clearNoteRangeStyle(
-  range: Range,
-  property: NoteInlineStyleProperty,
-) {
+function clearNoteRangeStyle(range: Range, property: NoteInlineStyleProperty) {
   if (range.collapsed) return null
 
   const fragment = range.extractContents()
@@ -534,9 +558,7 @@ function clearNoteFormatting() {
   const { editor, selection, range } = getActiveNoteEditor()
   if (!editor || !selection || !range) return
 
-  const nextRange = clearRangeFormatting(
-    getNoteFormattingRange(range, editor),
-  )
+  const nextRange = clearRangeFormatting(getNoteFormattingRange(range, editor))
   if (!nextRange) return
 
   selection.removeAllRanges()
@@ -587,9 +609,7 @@ function applyNoteFontSize(direction: 1 | -1) {
         ),
       )
 
-      if (
-        !setNoteRangeStyle(range, 'fontSize', `${nextFontSize}px`)
-      ) {
+      if (!setNoteRangeStyle(range, 'fontSize', `${nextFontSize}px`)) {
         return
       }
       emitNoteEditorInput(editor)
@@ -643,10 +663,7 @@ export function OperationShareNoteFormatToolbar({
     const handleSelectAllChange = (event: Event) => {
       setAllSelected(Boolean((event as CustomEvent<boolean>).detail))
     }
-    window.addEventListener(
-      NOTE_SELECT_ALL_CHANGE_EVENT,
-      handleSelectAllChange,
-    )
+    window.addEventListener(NOTE_SELECT_ALL_CHANGE_EVENT, handleSelectAllChange)
     return () => {
       window.removeEventListener(
         NOTE_SELECT_ALL_CHANGE_EVENT,
@@ -691,18 +708,14 @@ export function OperationShareNoteFormatToolbar({
       />
       <NoteFormatButton
         ariaLabel="恢复原来的字色"
-        onClick={() =>
-          runHistoryGroup(() => clearNoteInlineStyle('color'))
-        }
+        onClick={() => runHistoryGroup(() => clearNoteInlineStyle('color'))}
       >
         <NoteColorIcon color="#111827" />
       </NoteFormatButton>
       <NoteFormatButton
         ariaLabel="红字"
         onClick={() =>
-          runHistoryGroup(() =>
-            applyNoteInlineStyle('color', NOTE_COLORS.red),
-          )
+          runHistoryGroup(() => applyNoteInlineStyle('color', NOTE_COLORS.red))
         }
       >
         <NoteColorIcon color={NOTE_COLORS.red} />
@@ -710,9 +723,7 @@ export function OperationShareNoteFormatToolbar({
       <NoteFormatButton
         ariaLabel="蓝字"
         onClick={() =>
-          runHistoryGroup(() =>
-            applyNoteInlineStyle('color', NOTE_COLORS.blue),
-          )
+          runHistoryGroup(() => applyNoteInlineStyle('color', NOTE_COLORS.blue))
         }
       >
         <NoteColorIcon color={NOTE_COLORS.blue} />
@@ -720,9 +731,7 @@ export function OperationShareNoteFormatToolbar({
       <NoteFormatButton
         ariaLabel="取消背景色"
         onClick={() =>
-          runHistoryGroup(() =>
-            clearNoteInlineStyle('backgroundColor'),
-          )
+          runHistoryGroup(() => clearNoteInlineStyle('backgroundColor'))
         }
       >
         <NoteNoHighlightIcon />
@@ -731,10 +740,7 @@ export function OperationShareNoteFormatToolbar({
         ariaLabel="黄色背景"
         onClick={() =>
           runHistoryGroup(() =>
-            applyNoteInlineStyle(
-              'backgroundColor',
-              NOTE_HIGHLIGHT_COLOR,
-            ),
+            applyNoteInlineStyle('backgroundColor', NOTE_HIGHLIGHT_COLOR),
           )
         }
       >
@@ -812,7 +818,16 @@ export function OperationShareNoteEditor({
     if (!editor || editor.innerHTML === value) return
     if (!revisionChanged && isEditingRef.current) return
 
-    editor.innerHTML = value
+    // 作者配置和本地缓存都不可信；只把预览允许的标签与格式放进活动 DOM。
+    if (/<[a-z][\s\S]*>/i.test(value)) {
+      const template = document.createElement('template')
+      template.innerHTML = value
+      editor.replaceChildren(
+        ...createSafeNoteNodes(template.content.childNodes),
+      )
+    } else {
+      editor.textContent = value
+    }
     if (!revisionChanged || document.activeElement !== editor) return
 
     const range = document.createRange()
@@ -847,6 +862,7 @@ export function OperationShareNoteEditor({
           }
         }}
         onInput={emitChange}
+        onDrop={(event) => event.preventDefault()}
         onPaste={(event) => {
           event.preventDefault()
           const text = event.clipboardData.getData('text/plain')
@@ -866,6 +882,7 @@ export function OperationShareNoteEditor({
         }}
         ref={editorRef}
         role="textbox"
+        tabIndex={0}
         suppressContentEditableWarning
       />
     </div>

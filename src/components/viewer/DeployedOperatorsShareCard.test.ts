@@ -101,7 +101,7 @@ describe('deployed operators share card', () => {
     expect(hiddenMarkup).toContain('MAAYUAN SHARE')
   })
 
-  it('orders required discs before forbidden and unmarked discs', () => {
+  it('orders required discs before unmarked and forbidden discs', () => {
     const unmarkedDisc = model.operators[0].discs[0]
     const forbiddenDisc = {
       slot: 2,
@@ -119,7 +119,7 @@ describe('deployed operators share card', () => {
         [unmarkedDisc, forbiddenDisc, requiredDisc],
         new Set([3]),
       ),
-    ).toEqual([requiredDisc, forbiddenDisc, unmarkedDisc])
+    ).toEqual([requiredDisc, unmarkedDisc, forbiddenDisc])
     expect(orderOperationShareDiscs([forbiddenDisc])).toEqual([
       forbiddenDisc,
       undefined,
@@ -127,7 +127,7 @@ describe('deployed operators share card', () => {
     ])
   })
 
-  it('renders discs in required, forbidden, then unmarked order', () => {
+  it('renders discs in required, unmarked, then forbidden order', () => {
     const config = createOperationShareCardConfig()
     config.requiredDiscs['1:3'] = true
     const orderedModel: OperationShareModel = {
@@ -159,7 +159,7 @@ describe('deployed operators share card', () => {
     )
 
     expect(markup.indexOf('必选命盘')).toBeLessThan(markup.indexOf('禁止命盘'))
-    expect(markup.indexOf('禁止命盘')).toBeLessThan(markup.indexOf('技伤大幅'))
+    expect(markup.indexOf('技伤大幅')).toBeLessThan(markup.indexOf('禁止命盘'))
   })
 
   it('hides the unselected disc label while retaining its stones', () => {
@@ -214,7 +214,8 @@ describe('deployed operators share card', () => {
     expect(markup).toContain('text-[27px]')
     expect(markup).toContain('text-[24px]')
     expect(markup).toContain('text-[22px]')
-    expect(markup).toContain('text-[30px]')
+    expect(markup).toContain('aria-label="化极 4"')
+    expect(markup.match(/<svg/g)).toHaveLength(4)
     expect(markup.match(/background:#f3e3c9/g)).toHaveLength(8)
     expect(markup).not.toContain('#ddc09e')
     expect(markup.match(/<tr/g)).toHaveLength(10)

@@ -510,6 +510,7 @@ export function getLabel(path: PropertyKey[]) {
     rec_target_offset: i18n.components.editor2.LevelSelect.rec_target_offset_label,
     activity_difficulty_override: i18n.components.editor2.LevelSelect.activity_difficulty_label,
     level_meta: i18n.components.editor.OperationEditor.stage,
+    recorder_meta: "录制状态",
     opers: i18n.components.editor2.label.opers,
     groups: {
       ...i18n.components.editor2.label.operation.groups,

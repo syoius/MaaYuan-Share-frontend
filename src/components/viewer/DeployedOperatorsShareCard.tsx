@@ -75,7 +75,7 @@ function DiscAbbreviation({
         className="inline-flex max-w-full items-center justify-center gap-1"
         style={{ color: '#8f2117' }}
       >
-        <span aria-hidden className="text-[24px] leading-none"></span>
+        <span aria-hidden className="text-[24px] leading-none" />
         <span className="whitespace-nowrap text-[24px] font-black leading-snug line-through decoration-2">
           {disc.abbreviation}
         </span>
@@ -96,7 +96,7 @@ function DiscAbbreviation({
           aria-label={`核心命盘：${disc.abbreviation}`}
           className="inline-flex max-w-full items-center justify-center gap-1"
         >
-          <span aria-hidden className="text-[24px] leading-none"></span>
+          <span aria-hidden className="text-[24px] leading-none" />
           <span
             className="whitespace-nowrap text-[24px] font-black leading-snug"
             style={{ color }}
@@ -125,7 +125,7 @@ function ExtraForbiddenDisc({ name }: { name: string }) {
       className="inline-flex max-w-full items-center justify-center gap-1"
       style={{ color: '#8f2117' }}
     >
-      <span aria-hidden className="text-[24px] leading-none"></span>
+      <span aria-hidden className="text-[24px] leading-none" />
       <span className="whitespace-nowrap text-[24px] font-black leading-snug line-through decoration-2">
         {name}
       </span>

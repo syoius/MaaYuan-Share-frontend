@@ -2,8 +2,8 @@ import {
   getRecorderDeadTargetFallbacks,
   getRecorderDeadTargetIndices,
   getRecorderSpawnedTargetIndices,
-  isRecorderTargetSwitchToken,
   isRecorderAttackToken,
+  isRecorderTargetSwitchToken,
   parseRecorderTargetMetadata,
   setRecorderTokenDeadTargetFallback,
   setRecorderTokenDeadTargets,
@@ -87,7 +87,12 @@ const readTargetIndices = (value: unknown) => {
     new Set(
       indices.length > 0
         ? indices
-        : [Math.min(MAX_TARGET_INDEX, Math.max(MIN_TARGET_INDEX, DEFAULT_INITIAL_MAIN))],
+        : [
+            Math.min(
+              MAX_TARGET_INDEX,
+              Math.max(MIN_TARGET_INDEX, DEFAULT_INITIAL_MAIN),
+            ),
+          ],
     ),
   ).sort((a, b) => a - b)
 }
@@ -192,7 +197,7 @@ export function parseRecorderMeta(value?: unknown): RecorderMeta {
     initialEnemies,
     initialMain: initialEnemies.includes(initialMain)
       ? initialMain
-      : initialEnemies[0] ?? DEFAULT_INITIAL_MAIN,
+      : (initialEnemies[0] ?? DEFAULT_INITIAL_MAIN),
     changes: readChanges(raw['changes']),
   }
 }
@@ -435,61 +440,62 @@ const getDerivedRecorderMetaTargetIndex = (
       ]
   }
 
-  Object.entries(meta.changes)
-    .sort(([a], [b]) => Number(a) - Number(b))
-    .forEach(([roundKey, roundChanges]) => {
-      const currentRound = Number(roundKey)
-      if (currentRound > round) {
-        return
+  for (const [roundKey, roundChanges] of Object.entries(meta.changes).sort(
+    ([a], [b]) => Number(a) - Number(b),
+  )) {
+    const currentRound = Number(roundKey)
+    if (currentRound > round) {
+      break
+    }
+
+    for (const [attackNumberKey, change] of Object.entries(roundChanges).sort(
+      ([a], [b]) => Number(a) - Number(b),
+    )) {
+      const currentAttackNumber = Number(attackNumberKey)
+      const reachedTargetAction =
+        currentRound === round && currentAttackNumber === attackNumber
+      // 环形切换只需执行余数步，避免外部元数据的大计数阻塞页面。
+      const leftSwitches = (change.left ?? 0) % activeTargetIndices.length
+      const rightSwitches = (change.right ?? 0) % activeTargetIndices.length
+      for (let index = 0; index < leftSwitches; index += 1) {
+        moveMainIndex(-1)
+      }
+      for (let index = 0; index < rightSwitches; index += 1) {
+        moveMainIndex(1)
       }
 
-      Object.entries(roundChanges)
-        .sort(([a], [b]) => Number(a) - Number(b))
-        .forEach(([attackNumberKey, change]) => {
-          const currentAttackNumber = Number(attackNumberKey)
-          const reachedTargetAction =
-            currentRound === round && currentAttackNumber === attackNumber
-          if (reachedTargetAction) {
-            return
-          }
+      if (reachedTargetAction) {
+        return activeTargetIndices.includes(currentMainIndex)
+          ? currentMainIndex
+          : undefined
+      }
 
-          const leftSwitches = change.left ?? 0
-          const rightSwitches = change.right ?? 0
-          for (let index = 0; index < leftSwitches; index += 1) {
-            moveMainIndex(-1)
-          }
-          for (let index = 0; index < rightSwitches; index += 1) {
-            moveMainIndex(1)
-          }
+      if (change.dead?.length || change.spawned?.length) {
+        const deadSet = new Set(change.dead ?? [])
+        const activeSet = new Set(
+          activeTargetIndices.filter(
+            (targetIndex) => !deadSet.has(targetIndex),
+          ),
+        )
+        ;(change.spawned ?? []).forEach((targetIndex) =>
+          activeSet.add(targetIndex),
+        )
+        activeTargetIndices = Array.from(activeSet).sort((a, b) => a - b)
 
-          if (change.dead?.length || change.spawned?.length) {
-            const deadSet = new Set(change.dead ?? [])
-            const activeSet = new Set(
-              activeTargetIndices.filter(
-                (targetIndex) => !deadSet.has(targetIndex),
-              ),
-            )
-            ;(change.spawned ?? []).forEach((targetIndex) =>
-              activeSet.add(targetIndex),
-            )
-            activeTargetIndices = Array.from(activeSet).sort(
-              (a, b) => a - b,
-            )
-
-            if (
-              activeTargetIndices.length > 0 &&
-              !activeTargetIndices.includes(currentMainIndex)
-            ) {
-              const fallbackTargetIndex = change.fallback?.[currentMainIndex]
-              currentMainIndex =
-                fallbackTargetIndex !== undefined &&
-                activeTargetIndices.includes(fallbackTargetIndex)
-                  ? fallbackTargetIndex
-                  : findNearestTargetIndex(currentMainIndex)
-            }
-          }
-        })
-    })
+        if (
+          activeTargetIndices.length > 0 &&
+          !activeTargetIndices.includes(currentMainIndex)
+        ) {
+          const fallbackTargetIndex = change.fallback?.[currentMainIndex]
+          currentMainIndex =
+            fallbackTargetIndex !== undefined &&
+            activeTargetIndices.includes(fallbackTargetIndex)
+              ? fallbackTargetIndex
+              : findNearestTargetIndex(currentMainIndex)
+        }
+      }
+    }
+  }
 
   return activeTargetIndices.includes(currentMainIndex)
     ? currentMainIndex
@@ -546,8 +552,7 @@ export function hydrateRoundActionsWithRecorderMeta(
           .map((value) => parseRecorderTargetMetadata(value))
           .find((value) => value !== undefined)
         const targetIndex =
-          change.target ??
-          getRecorderMetaTargetIndex(meta, round, attackNumber)
+          change.target ?? getRecorderMetaTargetIndex(meta, round, attackNumber)
 
         if (existingTargetIndex === undefined && targetIndex !== undefined) {
           result = setRecorderTokenTarget(result, round, index, targetIndex)
@@ -580,10 +585,7 @@ export function hydrateRoundActionsWithRecorderMeta(
           currentEntry.slice(1),
         )
         const nextSpawnedTargetIndices = Array.from(
-          new Set([
-            ...currentSpawnedTargetIndices,
-            ...(change.spawned ?? []),
-          ]),
+          new Set([...currentSpawnedTargetIndices, ...(change.spawned ?? [])]),
         ).sort((a, b) => a - b)
         if (
           nextSpawnedTargetIndices.length !==

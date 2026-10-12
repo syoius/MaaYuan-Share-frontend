@@ -6,7 +6,6 @@ import {
   Tag,
 } from '@blueprintjs/core'
 
-import clsx from 'clsx'
 import { useAtomValue } from 'jotai'
 import { FC, type ReactNode, useMemo, useState } from 'react'
 

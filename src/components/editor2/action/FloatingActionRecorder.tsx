@@ -297,9 +297,6 @@ export function FloatingActionRecorder({
   const [size, setSize] = useState(getInitialSize)
   const [position, setPosition] = useState(() => getInitialPosition(size))
   const [visible, setVisible] = useState(false)
-  const [initialEnemies, setInitialEnemies] = useState<number[]>(
-    () => parsedRecorderMeta.initialEnemies,
-  )
   const [initialMain, setInitialMain] = useState<number>(
     () => parsedRecorderMeta.initialMain,
   )
@@ -359,7 +356,6 @@ export function FloatingActionRecorder({
 
   useEffect(() => {
     const parsed = parseRecorderMeta(recorderMetaProp)
-    setInitialEnemies(parsed.initialEnemies)
     setInitialMain(parsed.initialMain)
     setEnemyCount(parsed.initialEnemies.length)
     setAvailableTargetIndices(parsed.initialEnemies)
@@ -747,7 +743,6 @@ export function FloatingActionRecorder({
         ? initialMain
         : (nextTargetIndices[0] ?? initialMain)
       setEnemyCount(count)
-      setInitialEnemies(nextTargetIndices)
       setInitialMain(fallbackMain)
       setAvailableTargetIndices(nextTargetIndices)
       setSelectedTargetIndex(fallbackMain)
@@ -811,7 +806,6 @@ export function FloatingActionRecorder({
         (a, b) => a - b,
       )
       setAvailableTargetIndices(nextTargetIndices)
-      setInitialEnemies(nextTargetIndices)
       setEnemyCount(nextTargetIndices.length)
       onChange(
         rebuildRecorderTargetSwitches(
@@ -890,7 +884,6 @@ export function FloatingActionRecorder({
       }
 
       setAvailableTargetIndices(nextTargetIndices)
-      setInitialEnemies(nextTargetIndices)
       setEnemyCount(nextTargetIndices.length)
       const metaPatch: RecorderMetaPatch = {
         initialEnemies: nextTargetIndices,
@@ -1310,7 +1303,6 @@ export function FloatingActionRecorder({
     },
     [
       availableTargetIndices,
-      cancelTargetSwitchAnimation,
       initialMain,
       onChange,
       openRecorderDeathFallbackDialog,
