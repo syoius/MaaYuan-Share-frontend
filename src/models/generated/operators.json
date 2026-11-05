@@ -10036,6 +10036,7 @@
         "shenji"
       ],
       "games": [
+        "如鸢",
         "代号鸢"
       ],
       "discs": [
@@ -10127,6 +10128,7 @@
         "shenji"
       ],
       "games": [
+        "如鸢",
         "代号鸢"
       ],
       "discs": [
@@ -11481,37 +11483,219 @@
       ]
     },
     {
-      "id": "char_133_unknown",
-      "name": "",
-      "name_en": "",
-      "alias": "“”",
-      "alt_name": "",
-      "rarity": 0,
-      "prof": [],
-      "subProf": [],
+      "id": "char_133_zhudali",
+      "name": "竺大力",
+      "name_en": "竺大力",
+      "alias": "zhudali zdl “竺大力” 竺大力",
+      "alt_name": "竺大力",
+      "rarity": 5,
+      "prof": [
+        "阳"
+      ],
+      "subProf": [
+        "pojun"
+      ],
       "games": [
-        "如鸢",
         "代号鸢"
       ],
-      "discs": []
+      "discs": [
+        {
+          "ot_name": "防御时恢复生命",
+          "abbreviation": "防御回血",
+          "color": "紫",
+          "desp": "防御时，恢复10%最大生命值的生命"
+        },
+        {
+          "ot_name": "既见娑婆",
+          "abbreviation": "既见娑婆",
+          "color": "金",
+          "desp": "自身每消耗1层【心念】，攻击力提升10%（1回合，可叠加）"
+        },
+        {
+          "ot_name": "攻击力大幅提升",
+          "abbreviation": "攻击大幅",
+          "color": "金",
+          "desp": "攻击力提升12%"
+        },
+        {
+          "ot_name": "尘相",
+          "abbreviation": "尘相",
+          "color": "金",
+          "desp": "自身进入【力士】状态时，自身技能增伤提升50，心念增伤提升50（1回合）\n自身退出【力士】状态时，自身增伤值降低80（1回合）"
+        },
+        {
+          "ot_name": "技能伤害大幅增加",
+          "abbreviation": "技伤大幅",
+          "color": "金",
+          "desp": "技能的伤害系数增加40%"
+        },
+        {
+          "ot_name": "梵相",
+          "abbreviation": "梵相",
+          "color": "金",
+          "desp": "每回合1次：触发＜心念>后，获得1层【心念】，自身阳属性增伤提升100（1回合，触发<心念>后移除）"
+        },
+        {
+          "ot_name": "普攻伤害小幅增加",
+          "abbreviation": "普攻小幅",
+          "color": "蓝",
+          "desp": "普攻的伤害系数增加10%"
+        },
+        {
+          "ot_name": "悍不畏死",
+          "abbreviation": "悍不畏死",
+          "color": "金",
+          "desp": "施加【妄失】时，如果目标存在【妄失】，自身获得【渡厄】【渡厄】：回合开始时，如果自身【心念】层数大于4，消耗超过4的部分的【心念】，每消耗1层【心念】，自身攻击力提升30％，心念增伤提升30（1回合 可 叠加4层）"
+        },
+        {
+          "ot_name": "最大生命中幅提升",
+          "abbreviation": "生命中幅",
+          "color": "紫",
+          "desp": "最大生命提升8%"
+        },
+        {
+          "ot_name": "生命低时提升攻击",
+          "abbreviation": "血低攻高",
+          "color": "蓝",
+          "desp": "生命值低于50%时，自身攻击力提升10%"
+        },
+        {
+          "ot_name": "攻击力中幅提升",
+          "abbreviation": "攻击中幅",
+          "color": "紫",
+          "desp": "攻击力提升8%"
+        },
+        {
+          "ot_name": "技能伤害小幅增加",
+          "abbreviation": "技伤小幅",
+          "color": "蓝",
+          "desp": "技能的伤害系数增加8%"
+        }
+      ]
     },
     {
-      "id": "char_134_unknown",
-      "name": "",
-      "name_en": "",
-      "alias": "“”",
-      "alt_name": "",
-      "rarity": 0,
-      "prof": [],
-      "subProf": [],
+      "id": "char_134_anshigao",
+      "name": "安世高",
+      "name_en": "安世高",
+      "alias": "anshigao asg “安世高” 安世高",
+      "alt_name": "安世高",
+      "rarity": 5,
+      "prof": [
+        "阳"
+      ],
+      "subProf": [
+        "shenji"
+      ],
       "games": [
-        "如鸢",
         "代号鸢"
       ],
-      "discs": []
+      "discs": [
+        {
+          "ot_name": "攻击力大幅提升",
+          "abbreviation": "攻击大幅",
+          "color": "金",
+          "desp": "攻击力提升12%"
+        },
+        {
+          "ot_name": "技能伤害小幅增加",
+          "abbreviation": "技伤小幅",
+          "color": "蓝",
+          "desp": "技能的伤害系数增加8%"
+        },
+        {
+          "ot_name": "质而不野",
+          "abbreviation": "质而不野",
+          "color": "金",
+          "desp": "【定境】新增：使用技能时，使我方全体攻击力提升40%（1回合），使我方拥有【心念】的密探攻击\n力额外提升40%（1回合）。回合结束时，使竺大力获得1层【心念】"
+        },
+        {
+          "ot_name": "攻击力小幅提升",
+          "abbreviation": "攻击小幅",
+          "color": "蓝",
+          "desp": "攻击力提升3%"
+        },
+        {
+          "ot_name": "赜玄",
+          "abbreviation": "赜玄",
+          "color": "金",
+          "desp": "我方密探造成技能伤害后，使其心念增伤提升50（1回合）；我方密探触发＜心念>后，使其技能增伤提升50（1回合）"
+        },
+        {
+          "ot_name": "辩而不华",
+          "abbreviation": "辩而不华",
+          "color": "金",
+          "desp": "【散乱】新增：自身【心念】层数等于8时，我方密探触发＜心念＞的概率提升至100%，且本次<心念＞可造成额外50%伤害，但会额外消耗4层【心念】"
+        },
+        {
+          "ot_name": "防御时恢复生命",
+          "abbreviation": "防御回血",
+          "color": "紫",
+          "desp": "防御时，恢复10%最大生命值的生命"
+        },
+        {
+          "ot_name": "攻击力中幅提升",
+          "abbreviation": "攻击中幅",
+          "color": "紫",
+          "desp": "攻击力提升8%"
+        },
+        {
+          "ot_name": "防御减伤提升",
+          "abbreviation": "防御减伤",
+          "color": "蓝",
+          "desp": "防御时额外使自身防御系数提升10"
+        },
+        {
+          "ot_name": "生命高时攻击提升",
+          "abbreviation": "血高攻高",
+          "color": "蓝",
+          "desp": "生命值高于50%时，自身攻击力提升10%"
+        },
+        {
+          "ot_name": "最大生命小幅提升",
+          "abbreviation": "生命小幅",
+          "color": "蓝",
+          "desp": "最大生命提升3%"
+        },
+        {
+          "ot_name": "最大生命中幅提升",
+          "abbreviation": "生命中幅",
+          "color": "紫",
+          "desp": "最大生命提升8%"
+        }
+      ]
     },
     {
       "id": "char_135_unknown",
+      "name": "",
+      "name_en": "",
+      "alias": "“”",
+      "alt_name": "",
+      "rarity": 0,
+      "prof": [],
+      "subProf": [],
+      "games": [
+        "如鸢",
+        "代号鸢"
+      ],
+      "discs": []
+    },
+    {
+      "id": "char_136_unknown",
+      "name": "",
+      "name_en": "",
+      "alias": "“”",
+      "alt_name": "",
+      "rarity": 0,
+      "prof": [],
+      "subProf": [],
+      "games": [
+        "如鸢",
+        "代号鸢"
+      ],
+      "discs": []
+    },
+    {
+      "id": "char_137_unknown",
       "name": "",
       "name_en": "",
       "alias": "“”",
