@@ -7,7 +7,6 @@ import { useTranslation } from "../../../i18n/i18n";
 import { CopilotDocV1 } from "../../../models/copilot.schema";
 import { stripOperationExportFields } from "../../../services/operation";
 import { AppToaster } from "../../Toaster";
-import { BiyongImporter } from "./BiyongImporter";
 import { FileImporter } from "./FileImporter";
 import { ShortCodeImporter } from "./ShortCodeImporter";
 import { XlsxImporter } from "./XlsxImporter";
@@ -106,7 +105,6 @@ export const SourceEditorHeader: FC<SourceEditorHeaderProps> = ({ text, onChange
             <FileImporter onImport={handleImport} />
             <XlsxImporter onImport={handleImport} />
             <ShortCodeImporter onImport={handleImport} />
-            <BiyongImporter onImport={handleImport} />
           </Menu>
         }
       >

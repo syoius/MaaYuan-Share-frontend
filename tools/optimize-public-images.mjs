@@ -11,7 +11,6 @@ const bannerSources = [
   ['mumu-560x320.jpg', 'mumu.webp'],
   ['biubiu.png', 'biubiu.webp'],
   ['mirror.png', 'mirror.webp'],
-  ['biyong.png', 'biyong.webp'],
   ['wiki.png', 'wiki.webp'],
 ]
 

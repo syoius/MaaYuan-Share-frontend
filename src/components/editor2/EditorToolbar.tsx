@@ -30,7 +30,6 @@ import {
   toEditorOperation,
   toMaaOperation,
 } from './reconciliation'
-import { BiyongImporter } from './source/BiyongImporter'
 import { FileImporter } from './source/FileImporter'
 import { ShortCodeImporter } from './source/ShortCodeImporter'
 import { SourceEditorButton } from './source/SourceEditor'
@@ -179,7 +178,6 @@ const ImportOperationButton = (buttonProps: ButtonProps) => {
           <FileImporter onImport={handleImport} />
           <XlsxImporter onImport={handleImport} />
           <ShortCodeImporter onImport={handleImport} />
-          <BiyongImporter onImport={handleImport} />
         </Menu>
       }
     >

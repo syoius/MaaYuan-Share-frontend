@@ -22,11 +22,6 @@ export const defaultAdBanners: AdBannerConfigItem[] = [
     alt: "Mirror",
   },
   {
-    image: "/biyong.webp",
-    link: "",
-    alt: "辟雍",
-  },
-  {
     image: "/wiki.webp",
     link: "https://wiki.biligame.com/yuan/%E9%A6%96%E9%A1%B5",
     alt: "wiki",
