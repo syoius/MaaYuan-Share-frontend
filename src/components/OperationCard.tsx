@@ -3,6 +3,7 @@ import { Tooltip2 } from '@blueprintjs/popover2'
 
 import clsx from 'clsx'
 import { useAtomValue } from 'jotai'
+import { find } from 'linkifyjs'
 import { CopilotInfoStatusEnum } from 'maa-copilot-client'
 import { copyShortCode, handleLazyDownloadJSON } from 'services/operation'
 
@@ -17,14 +18,17 @@ import { languageAtom, useTranslation } from '../i18n/i18n'
 import { createCustomLevel, findLevelByStageName } from '../models/level'
 import { getLocalizedOperatorName } from '../models/operator'
 import { OperationMatchResult } from '../models/operatorMatcher'
+import { getOperationCardExcerpt } from '../utils/operationCardExcerpt'
 import { readOperatorStats } from '../utils/operatorStats'
 import { OperatorAvatar } from './OperatorAvatar'
 import { OperatorMatchSummary } from './OperatorMatcher'
 import { Paragraphs } from './Paragraphs'
-import { ReLinkRenderer } from './ReLink'
+import { ReLink, ReLinkRenderer } from './ReLink'
 import { UserName } from './UserName'
 import { EDifficulty } from './entity/EDifficulty'
 import { EDifficultyLevel, NeoELevel } from './entity/ELevel'
+
+import './OperationCard.css'
 
 const RarityDiamond = ({ className }: { className?: string }) => (
   <svg
@@ -73,203 +77,187 @@ export const NeoOperationCard = ({
   const itemTags: string[] = Array.isArray(operation.metadata?.tags)
     ? (operation.metadata?.tags as string[])
     : []
-  const hasTag = (name: string) => itemTags.includes(name)
   const sourceType =
     operation.metadata?.sourceType ??
     // 兼容后端 snake_case 字段
     (operation.metadata as any)?.source_type
-  const sourceLabel =
-    sourceType === 'original'
-      ? '【原创】'
-      : sourceType === 'repost'
-        ? '【搬运】'
-        : ''
-  const sourceTag =
-    sourceType === 'original'
-      ? { label: '原创', color: '#0ca678', marquee: true }
-      : sourceType === 'repost'
-        ? { label: '搬运', color: '#0ca678' }
-        : null
-
-  try {
-    // 诊断：输出元数据形态与映射结果
-    // 注意：临时日志，确认首页列表数据结构
-    // eslint-disable-next-line no-console
-    console.debug('[NeoOperationCard]', {
-      id: operation.id,
-      metadata: operation.metadata,
-      sourceType,
-      sourceLabel,
-    })
-  } catch (error) {
-    void error
-  }
+  const level =
+    operation.preLevel ||
+    findLevelByStageName(levels, operation.parsedContent.stageName) ||
+    createCustomLevel(operation.parsedContent.stageName)
 
   return (
-    <li className="relative">
+    <li className="relative min-w-0">
       <ReLinkRenderer
         search={{ op: operation.id }}
-        render={({ onClick, onKeyDown }) => (
+        render={({ onClick }) => (
           <Card
             interactive
-            className="h-full flex flex-col gap-2"
-            elevation={Elevation.TWO}
-            tabIndex={0}
-            onClick={onClick}
-            onKeyDown={onKeyDown}
+            className={clsx('operation-card', selectable && 'is-selectable')}
+            elevation={Elevation.ONE}
+            onClick={(event) => {
+              if (
+                !(event.target instanceof Element) ||
+                !event.currentTarget.contains(event.target) ||
+                event.target.closest(
+                  'a, button, summary, input, select, textarea',
+                )
+              )
+                return
+              onClick(event)
+            }}
           >
-            <Tooltip2
-              content={operation.parsedContent.doc.title}
-              className="whitespace-nowrap overflow-hidden text-ellipsis"
-            >
-              <H4 className="p-0 m-0 mr-20 flex items-center overflow-hidden">
-                <span className="whitespace-nowrap overflow-hidden text-ellipsis">
-                  {operation.parsedContent.doc.title}
-                </span>
-                {operation.status === CopilotInfoStatusEnum.Private && (
-                  <Tag minimal className="ml-2 shrink-0 font-normal opacity-75">
-                    {t.components.OperationCard.private}
-                  </Tag>
-                )}
-                {showReadStatus && (
-                  <ReadOperationTag operationId={operation.id} />
-                )}
-              </H4>
-            </Tooltip2>
+            <H4 className="operation-card-title">
+              <ReLink search={{ op: operation.id }}>
+                {operation.parsedContent.doc.title}
+              </ReLink>
+              {operation.status === CopilotInfoStatusEnum.Private && (
+                <Tag minimal className="ml-2 shrink-0 font-normal opacity-75">
+                  {t.components.OperationCard.private}
+                </Tag>
+              )}
+              {showReadStatus && (
+                <ReadOperationTag operationId={operation.id} />
+              )}
+            </H4>
 
-            <OperatorMatchSummary result={matchResult} />
-
-            <div className="flex items-center text-slate-900">
-              {(() => {
-                // 优先使用后端直出字段（data.cat_one / data.name / ...）
-                const levelFromBackend =
-                  operation.preLevel ||
-                  findLevelByStageName(
-                    levels,
-                    operation.parsedContent.stageName,
-                  ) ||
-                  createCustomLevel(operation.parsedContent.stageName)
-                // 标签显示规则：{catOne} | {name}
-                const displayLevel = {
-                  ...levelFromBackend,
-                  // 将原先显示的 catTwo 改为使用 name 字段渲染
-                  catTwo: levelFromBackend.name,
-                }
-                return <NeoELevel level={displayLevel} />
-              })()}
+            <div className="operation-card-labels">
+              <NeoELevel level={{ ...level, catTwo: level.name }} />
 
               <EDifficulty
                 difficulty={
                   operation.parsedContent.difficulty ?? OpDifficulty.UNKNOWN
                 }
               />
-              {/* 平台标签：仅在拥有对应标签时显示；复用现有标签结构/类名，仅覆盖颜色 */}
-              <span className="ml-1 inline-flex items-center gap-1 operation-card-tags">
-                {hasTag('代号鸢') && (
+              {['代号鸢', '如鸢']
+                .filter((tag) => itemTags.includes(tag))
+                .map((tag) => (
                   <Tag
-                    className="transition border border-solid !text-xs tracking-tight !px-2 !py-1 !my-1 leading-none !min-h-0 bg-slate-200 border-slate-300 text-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    style={{ backgroundColor: '#d20f39', color: '#fff' }}
-                  >
-                    <div className="flex items-center">
-                      <div className="flex whitespace-pre">
-                        <span className="text-xs">代号鸢</span>
-                      </div>
-                    </div>
-                  </Tag>
-                )}
-                {hasTag('如鸢') && (
-                  <Tag
-                    className="transition border border-solid !text-xs tracking-tight !px-2 !py-1 !my-1 leading-none !min-h-0 bg-slate-200 border-slate-300 text-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    style={{ backgroundColor: '#1e66f5', color: '#fff' }}
-                  >
-                    <div className="flex items-center">
-                      <div className="flex whitespace-pre">
-                        <span className="text-xs">如鸢</span>
-                      </div>
-                    </div>
-                  </Tag>
-                )}
-                {sourceTag && (
-                  <Tag
-                    className={clsx(
-                      'transition border border-solid !text-xs tracking-tight !px-2 !py-1 !my-1 leading-none !min-h-0 bg-slate-200 border-slate-300 text-slate-700 dark:bg-slate-900 dark:text-slate-100',
-                      sourceTag.marquee && 'operation-tag-gold-marquee',
-                    )}
-                    style={
-                      sourceTag.marquee
-                        ? { color: '#fff' }
-                        : { backgroundColor: sourceTag.color, color: '#fff' }
+                    key={tag}
+                    className={
+                      tag === '如鸢'
+                        ? 'operation-label-blue'
+                        : 'operation-label-red'
                     }
                   >
-                    <div className="flex items-center">
-                      <div className="flex whitespace-pre">
-                        <span className="text-xs">{sourceTag.label}</span>
-                      </div>
-                    </div>
+                    {tag}
                   </Tag>
-                )}
-              </span>
+                ))}
+              {(sourceType === 'original' || sourceType === 'repost') && (
+                <Tag
+                  className={
+                    sourceType === 'original'
+                      ? 'operation-label-gold'
+                      : 'operation-label-green'
+                  }
+                >
+                  {sourceType === 'original'
+                    ? t.components.OperationCard.original
+                    : t.components.OperationCard.repost}
+                </Tag>
+              )}
             </div>
 
-            <div className="grow text-gray-700 leading-normal max-h-48 overflow-hidden">
-              <Paragraphs
-                content={operation.parsedContent.doc.details}
-                limitHeight={21 * 8} // clamp to ~8 lines
-              />
+            <div className="operation-card-roster-heading">
+              <span>{t.components.OperationCard.required_operators}</span>
+              {matchResult && (
+                <div
+                  className={clsx(
+                    'operation-card-match',
+                    matchResult.mode === 'ready' && 'is-ready',
+                  )}
+                >
+                  {matchResult.mode === 'ready' && (
+                    <Icon icon="tick-circle" size={14} />
+                  )}
+                  <OperatorMatchSummary result={matchResult} />
+                </div>
+              )}
             </div>
+            <OperatorTags operation={operation} cardLayout />
 
-            <div className="text-sm text-zinc-600 dark:text-slate-100 font-bold">
-              {t.components.OperationCard.operators_and_groups}
-            </div>
-            <OperatorTags operation={operation} />
-            <div className="flex">
-              <div className="flex items-center gap-1.5">
-                <Icon icon="thumbs-up" />
-                <span className="text-sm tabular-nums">{operation.like}</span>
+            <OperationCardDescription operation={operation} />
+
+            <div className="operation-card-meta">
+              <div className="operation-card-author">
+                <Icon icon="user" size={14} />
+                <UserName userId={operation.uploaderId}>
+                  {operation.uploader}
+                </UserName>
+                <span aria-hidden="true">·</span>
+                <RelativeTime
+                  Tooltip2Props={{ placement: 'top' }}
+                  moment={operation.uploadTime}
+                />
               </div>
-              <div className="flex-1" />
-
+              <span
+                className="operation-card-stat"
+                aria-label={t.components.OperationCard.likes_count({
+                  count: operation.like,
+                })}
+              >
+                <Icon icon="thumbs-up" size={14} />
+                {operation.like}
+              </span>
               <Tooltip2
                 placement="top"
                 content={t.components.OperationCard.views_count({
                   count: operation.views,
                 })}
               >
-                <div>
-                  <Icon icon="eye-open" className="mr-1.5" />
-                  <span>{operation.views}</span>
-                </div>
+                <span
+                  className="operation-card-stat"
+                  aria-label={t.components.OperationCard.views_count({
+                    count: operation.views,
+                  })}
+                >
+                  <Icon icon="eye-open" size={14} />
+                  {operation.views}
+                </span>
               </Tooltip2>
             </div>
 
-            <div className="flex">
-              <div>
-                <Icon icon="time" className="mr-1.5" />
-                <RelativeTime
-                  Tooltip2Props={{ placement: 'top' }}
-                  moment={operation.uploadTime}
-                />
-              </div>
-              <div className="flex-1" />
-              <div className="text-zinc-500">
-                <Icon icon="user" className="mr-1.5" />
-                <UserName userId={operation.uploaderId}>
-                  {operation.uploader}
-                </UserName>
-              </div>
-            </div>
+            <CardActions
+              operation={operation}
+              selectable={selectable}
+              selected={selected}
+              onSelect={onSelect}
+              expanded
+            />
           </Card>
         )}
       />
-
-      <CardActions
-        className="absolute top-4 right-4"
-        operation={operation}
-        selectable={selectable}
-        selected={selected}
-        onSelect={onSelect}
-      />
     </li>
+  )
+}
+
+const OperationCardDescription = ({ operation }: { operation: Operation }) => {
+  const t = useTranslation().components.OperationCard
+  const details = operation.parsedContent.doc.details ?? ''
+  const links = find(details, 'url')
+  const excerpt = getOperationCardExcerpt(details, t.source_link)
+  const source = [
+    operation.metadata?.repostUrl,
+    ...links.map((link) => link.href),
+  ].find(
+    (url): url is string =>
+      typeof url === 'string' && /^https?:\/\//i.test(url),
+  )
+
+  return (
+    <div className="operation-card-description">
+      {excerpt && <p className="operation-card-excerpt">{excerpt}</p>}
+      <div className="operation-card-description-links">
+        <ReLink search={{ op: operation.id }}>
+          {t.view_full_description} <Icon icon="chevron-right" size={12} />
+        </ReLink>
+        {source && (
+          <a href={source} target="_blank" rel="noopener noreferrer">
+            <Icon icon="share" size={12} /> {t.source_link}
+          </a>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -484,10 +472,25 @@ export const OperationCard = ({
   )
 }
 
-const OperatorTags = ({ operation }: { operation: Operation }) => {
+const OperatorTags = ({
+  operation,
+  cardLayout = false,
+}: {
+  operation: Operation
+  cardLayout?: boolean
+}) => {
   const t = useTranslation()
   const language = useAtomValue(languageAtom)
   const { opers, groups } = operation.parsedContent
+  const showTraining =
+    !cardLayout ||
+    [
+      ...(opers ?? []),
+      ...(groups ?? []).flatMap((group) => group.opers ?? []),
+    ].some((operator) => {
+      const stats = readOperatorStats(operator)
+      return stats.hasStar || stats.hasHp || stats.hasAttack
+    })
 
   if (!(opers?.length || groups?.length)) {
     return (
@@ -498,7 +501,13 @@ const OperatorTags = ({ operation }: { operation: Operation }) => {
   }
 
   return (
-    <div className="flex flex-wrap items-start overflow-x-auto">
+    <div
+      className={
+        cardLayout
+          ? 'operation-card-operators'
+          : 'flex flex-wrap items-start overflow-x-auto'
+      }
+    >
       {opers?.map((operator, index) => {
         const operatorName = operator.name
         const displayName = getLocalizedOperatorName(operatorName, language)
@@ -514,61 +523,125 @@ const OperatorTags = ({ operation }: { operation: Operation }) => {
           <Tag
             key={`${operatorName}-${index}`}
             minimal
-            className="op-avatar-tag mr-2 last:mr-0 mb-1.5 last:mb-0 inline-flex shrink-0 flex-col items-center gap-1 py-2 px-2"
+            className={clsx(
+              'op-avatar-tag',
+              cardLayout
+                ? 'operation-card-operator'
+                : 'mr-2 last:mr-0 mb-1.5 last:mb-0 inline-flex shrink-0 flex-col items-center gap-1 py-2 px-2',
+            )}
           >
             <OperatorAvatar
               name={operatorName}
               size="verylarge"
               className="shrink-0"
             />
-            {showStar && (
-              <div className="flex items-center justify-center gap-0.5 mb-1.5">
-                {Array.from({ length: 5 }, (_, i) => i + 1).map((n) => (
-                  <RarityDiamond
-                    key={n}
-                    className={clsx(
-                      'h-3 w-3',
-                      n <= starLevel
-                        ? 'text-yellow-500 opacity-100'
-                        : 'text-gray-500 opacity-40 dark:opacity-30',
-                    )}
-                  />
-                ))}
+            {cardLayout && (
+              <span
+                className="operation-card-operator-name"
+                title={displayName}
+              >
+                {displayName}
+              </span>
+            )}
+            {(showStar || (cardLayout && showTraining)) && (
+              <div
+                className={
+                  cardLayout
+                    ? 'operation-card-stars'
+                    : 'flex items-center justify-center gap-0.5 mb-1.5'
+                }
+                role="img"
+                aria-label={
+                  showStar
+                    ? t.components.OperationCard.star_level({
+                        count: starLevel,
+                      })
+                    : t.components.OperationCard.stats_not_provided
+                }
+              >
+                {showStar &&
+                  Array.from({ length: 5 }, (_, i) => i + 1).map((n) => (
+                    <RarityDiamond
+                      key={n}
+                      className={clsx(
+                        'h-3 w-3',
+                        n <= starLevel
+                          ? 'text-yellow-500 opacity-100'
+                          : 'text-gray-500 opacity-40 dark:opacity-30',
+                      )}
+                    />
+                  ))}
               </div>
             )}
-            <span className="text-sm font-medium leading-tight text-slate-900 dark:text-slate-100">
-              {displayName}
-            </span>
-            {baseStatTexts.length > 0 && (
-              <div className="text-center text-xs leading-tight text-zinc-600 dark:text-slate-200">
-                {baseStatTexts.map((text) => (
-                  <span key={text} className="block whitespace-nowrap">
-                    {text}
-                  </span>
-                ))}
-              </div>
+            {!cardLayout && (
+              <span className="text-sm font-medium leading-tight text-slate-900 dark:text-slate-100">
+                {displayName}
+              </span>
             )}
+            {cardLayout
+              ? showTraining && (
+                  <div className="operation-card-operator-stats">
+                    <span>
+                      {t.components.OperationCard.hp}:{' '}
+                      <span>{stats.hasHp ? Math.max(0, stats.hp) : '—'}</span>
+                    </span>
+                    <span>
+                      {t.components.OperationCard.attack}:{' '}
+                      <span>
+                        {stats.hasAttack ? Math.max(0, stats.attack) : '—'}
+                      </span>
+                    </span>
+                  </div>
+                )
+              : baseStatTexts.length > 0 && (
+                  <div className="text-center text-xs leading-tight text-zinc-600 dark:text-slate-200">
+                    {baseStatTexts.map((text) => (
+                      <span key={text} className="block whitespace-nowrap">
+                        {text}
+                      </span>
+                    ))}
+                  </div>
+                )}
           </Tag>
         )
       })}
-      {groups?.map(({ name: groupName, opers: groupOpers }, index) => (
-        <Tooltip2
-          key={`group-${groupName}-${index}`}
-          className="mr-2 last:mr-0 mb-1 last:mb-0"
-          placement="top"
-          content={
-            groupOpers
-              ?.map(({ name: operatorName }) =>
-                getLocalizedOperatorName(operatorName, language),
-              )
-              .join(', ') || t.components.OperationCard.no_operators
-          }
-        >
-          <Tag minimal className="shrink-0">
-            [{groupName}]
-          </Tag>
-        </Tooltip2>
-      ))}
+      {groups?.map(({ name: groupName, opers: groupOpers }, index) =>
+        cardLayout ? (
+          <div
+            key={`group-${groupName}-${index}`}
+            className="operation-card-group"
+          >
+            <Tag minimal>{groupName}</Tag>
+            <span>
+              {groupOpers
+                ?.map(({ name }) => getLocalizedOperatorName(name, language))
+                .join(' / ') || t.components.OperationCard.no_operators}
+            </span>
+          </div>
+        ) : (
+          <Tooltip2
+            key={`group-${groupName}-${index}`}
+            className="mr-2 last:mr-0 mb-1 last:mb-0"
+            placement="top"
+            content={
+              groupOpers
+                ?.map(({ name: operatorName }) =>
+                  getLocalizedOperatorName(operatorName, language),
+                )
+                .join(', ') || t.components.OperationCard.no_operators
+            }
+          >
+            <Tag minimal className="shrink-0">
+              [{groupName}]
+            </Tag>
+          </Tooltip2>
+        ),
+      )}
+      {cardLayout && !showTraining && (
+        <span className="operation-card-training-note">
+          {t.components.OperationCard.training_not_provided}
+        </span>
+      )}
     </div>
   )
 }
@@ -579,12 +652,14 @@ const CardActions = ({
   selected,
   selectable,
   onSelect,
+  expanded = false,
 }: {
   className?: string
   operation: Operation
   selectable?: boolean
   selected?: boolean
   onSelect?: (operation: Operation, selected: boolean) => void
+  expanded?: boolean
 }) => {
   const t = useTranslation()
   const downloadJsonEnabled = useAtomValue(downloadJsonEnabledAtom)
@@ -596,10 +671,17 @@ const CardActions = ({
       intent="primary"
       className="absolute top-4 right-4"
       icon={selected ? 'tick' : 'blank'}
+      aria-label={t.components.OperationCard.select_job}
+      aria-pressed={!!selected}
       onClick={() => onSelect?.(operation, !selected)}
     />
   ) : (
-    <div className={clsx('flex gap-1', className)}>
+    <div
+      className={clsx(
+        expanded ? 'operation-card-actions' : 'flex gap-1',
+        className,
+      )}
+    >
       {downloadJsonEnabled && (
         <Tooltip2
           placement="bottom"
@@ -610,8 +692,11 @@ const CardActions = ({
           }
         >
           <Button
-            small
+            small={!expanded}
+            minimal={expanded}
+            className={expanded ? 'operation-card-download' : undefined}
             icon="download"
+            text={expanded ? t.components.OperationCard.download : undefined}
             aria-label={t.components.OperationCard.download_json}
             onClick={() =>
               handleLazyDownloadJSON(
@@ -625,40 +710,6 @@ const CardActions = ({
           />
         </Tooltip2>
       )}
-      {/* <Tooltip2
-        placement="bottom"
-        content={
-          <div className="max-w-sm dark:text-slate-900">
-            {t.components.OperationCard.download_siming_json}
-          </div>
-        }
-      >
-        <Button
-          small
-          icon="download"
-          onClick={() =>
-            handleLazyDownloadSimingJSON(
-              operation.id,
-              operation.parsedContent.doc.title,
-            )
-          }
-        />
-      </Tooltip2> */}
-      <Tooltip2
-        placement="bottom"
-        content={
-          <div className="max-w-sm dark:text-slate-900">
-            {t.components.OperationCard.copy_secret_code}
-          </div>
-        }
-      >
-        <Button
-          small
-          icon="clipboard"
-          aria-label={t.components.OperationCard.copy_secret_code}
-          onClick={() => copyShortCode(operation)}
-        />
-      </Tooltip2>
       <Tooltip2
         placement="bottom"
         content={
@@ -668,10 +719,31 @@ const CardActions = ({
         }
       >
         <AddToOperationSetButton
-          small
+          small={!expanded}
+          outlined={expanded}
+          className={expanded ? 'operation-card-add' : undefined}
           icon="plus"
+          text={expanded ? t.components.OperationCard.add_to_set : undefined}
           aria-label={t.components.OperationCard.add_to_job_set}
           operationIds={[operation.id]}
+        />
+      </Tooltip2>
+      <Tooltip2
+        placement="bottom"
+        content={
+          <div className="max-w-sm dark:text-slate-900">
+            {t.components.OperationCard.copy_secret_code}
+          </div>
+        }
+      >
+        <Button
+          small={!expanded}
+          icon="clipboard"
+          intent={expanded ? 'primary' : undefined}
+          className={expanded ? 'operation-card-copy' : undefined}
+          text={expanded ? t.components.OperationCard.copy_code : undefined}
+          aria-label={t.components.OperationCard.copy_secret_code}
+          onClick={() => copyShortCode(operation)}
         />
       </Tooltip2>
     </div>

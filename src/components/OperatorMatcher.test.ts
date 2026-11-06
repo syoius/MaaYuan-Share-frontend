@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readYuanHubAccounts, readYuanHubSnapshot } from '../apis/yuanhub'
 import { OPERATORS } from '../models/generated/operators.json'
 import { MatcherSettings, getMatcherAccountKey } from '../store/operatorMatcher'
-import { OperatorMatcher } from './OperatorMatcher'
+import { OperatorMatchSummary, OperatorMatcher } from './OperatorMatcher'
 
 vi.mock('../apis/yuanhub', () => ({
   readYuanHubAccounts: vi.fn(),
@@ -162,6 +162,31 @@ describe('automatic matcher sync', () => {
   afterEach(async () => {
     await act(async () => root.unmount())
     host.remove()
+  })
+
+  it('explains that a ready result checks ownership only', async () => {
+    await act(async () =>
+      root.render(
+        createElement(OperatorMatchSummary, {
+          result: { mode: 'ready', reasons: [] },
+        }),
+      ),
+    )
+    expect(host.querySelector('strong')?.getAttribute('title')).toBe(
+      'ownership_only',
+    )
+    expect(host.querySelector('.sr-only')?.textContent).toContain(
+      'ownership_only',
+    )
+    await act(async () =>
+      root.render(
+        createElement(OperatorMatchSummary, {
+          result: { mode: 'blocked', reasons: ['缺少密探'] },
+        }),
+      ),
+    )
+    expect(host.querySelector('strong')?.getAttribute('title')).toBeNull()
+    expect(host.querySelector('summary')?.textContent).toContain('缺少密探')
   })
 
   it('shows the count beside the enable switch and hides it when disabled', async () => {

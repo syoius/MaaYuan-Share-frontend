@@ -3869,6 +3869,30 @@
       }
     },
     "OperationCard": {
+      "required_operators": { "cn": "所需密探", "zh_tw": "所需密探" },
+      "original": { "cn": "原创", "zh_tw": "原創" },
+      "repost": { "cn": "搬运", "zh_tw": "搬運" },
+      "view_full_description": {
+        "cn": "查看完整说明",
+        "zh_tw": "查看完整說明"
+      },
+      "source_link": { "cn": "原文链接", "zh_tw": "原文連結" },
+      "download": { "cn": "下载", "zh_tw": "下載" },
+      "copy_code": { "cn": "复制代码", "zh_tw": "複製代碼" },
+      "add_to_set": { "cn": "加入作业集", "zh_tw": "加入作業集" },
+      "select_job": { "cn": "选择作业", "zh_tw": "選擇作業" },
+      "hp": { "cn": "血", "zh_tw": "血" },
+      "attack": { "cn": "攻", "zh_tw": "攻" },
+      "star_level": { "cn": "{{count}}星", "zh_tw": "{{count}}星" },
+      "stats_not_provided": { "cn": "未提供星级", "zh_tw": "未提供星級" },
+      "training_not_provided": {
+        "cn": "未提供星级及血攻要求",
+        "zh_tw": "未提供星級及血攻要求"
+      },
+      "likes_count": {
+        "cn": "点赞数：{{count}}",
+        "zh_tw": "按讚數：{{count}}"
+      },
       "private": {
         "cn": "私有",
         "zh_tw": "私有"
@@ -4024,8 +4048,12 @@
         "zh_tw": "密探匹配設定"
       },
       "ready": {
-        "cn": "阵容匹配",
-        "zh_tw": "陣容匹配"
+        "cn": "密探已匹配",
+        "zh_tw": "密探已匹配"
+      },
+      "ownership_only": {
+        "cn": "仅核对密探持有名单，不校验练度。",
+        "zh_tw": "僅核對密探持有名單，不校驗練度。"
       },
       "blocked": {
         "cn": "阵容不满足",

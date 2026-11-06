@@ -203,10 +203,10 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
 
     const items: ReactNode = neoLayout ? (
       <ul
-        className="grid gap-4 items-stretch"
+        className="grid gap-6 items-stretch"
         style={{
           gridTemplateColumns:
-            'repeat(auto-fill, minmax(min(20rem, 100%), 1fr))',
+            'repeat(auto-fill, minmax(min(24rem, 100%), 1fr))',
         }}
       >
         {orderedOperations.map((operation) => (

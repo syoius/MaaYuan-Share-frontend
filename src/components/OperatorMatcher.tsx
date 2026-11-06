@@ -36,12 +36,16 @@ export function OperatorMatchSummary({
 }) {
   const t = useTranslation().components.OperatorMatcher
   if (!result) return null
+  const label = (
+    <strong title={result.mode === 'ready' ? t.ownership_only : undefined}>
+      {t[result.mode]}
+      {result.mode === 'ready' && (
+        <span className="sr-only">，{t.ownership_only}</span>
+      )}
+    </strong>
+  )
   if (!result.reasons.length)
-    return (
-      <div className="text-sm leading-relaxed">
-        <strong>{t[result.mode]}</strong>
-      </div>
-    )
+    return <div className="text-sm leading-relaxed">{label}</div>
   return (
     <details className="text-sm leading-relaxed">
       <summary
@@ -49,7 +53,7 @@ export function OperatorMatchSummary({
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
       >
-        <strong>{t[result.mode]}</strong> · {result.reasons[0]}
+        {label} · {result.reasons[0]}
       </summary>
       <ul className="pl-5 list-disc">
         {result.reasons.map((reason, index) => (

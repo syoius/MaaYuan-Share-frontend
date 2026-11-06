@@ -1,0 +1,403 @@
+body .bp4-card.operation-card {
+  --card-surface: var(--maayuan-surface, #fff);
+  --card-text: var(--maayuan-text, #272b30);
+  --card-muted: #70695f;
+  --card-border: #e2d9c9;
+  --card-accent: var(--maayuan-accent-strong, #8f5112);
+  --card-hover: var(--maayuan-bg, #f6f3ed);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: var(--card-surface);
+  color: var(--card-text);
+  box-shadow: 0 2px 6px rgb(73 59 44 / 8%);
+}
+
+body .bp4-card.operation-card:hover {
+  box-shadow: 0 3px 10px rgb(73 59 44 / 12%);
+}
+
+body.theme-maayuan .bp4-card.operation-card {
+  --card-border: #d8c9b3;
+  border-width: 1.5px;
+  border-color: #b69a74;
+  background-color: var(--card-surface);
+  box-shadow: 0 2px 8px rgb(73 59 44 / 8%);
+}
+
+body.theme-maayuan .bp4-card.operation-card:hover,
+body.theme-maayuan .bp4-card.operation-card:focus-within {
+  border-color: #8f673c;
+  box-shadow: 0 3px 10px rgb(73 59 44 / 12%);
+}
+
+body .bp4-card.operation-card .operation-card-title {
+  min-height: 1.4em;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.operation-card.is-selectable .operation-card-title {
+  padding-right: 32px;
+}
+
+body .bp4-card.operation-card .operation-card-title > a {
+  color: var(--card-text);
+}
+
+.operation-card-labels,
+.operation-card-roster-heading,
+.operation-card-description-links,
+.operation-card-meta,
+.operation-card-author,
+.operation-card-stat,
+.operation-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.operation-card-labels {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+body .bp4-card.operation-card .operation-card-labels .bp4-tag {
+  max-width: 100%;
+  min-height: 24px;
+  margin: 0 !important;
+  padding: 4px 8px !important;
+  border: 0;
+  border-radius: 4px;
+  background: var(--maayuan-surface-strong, #eee8db);
+  color: var(--card-text);
+  font-size: 12px;
+}
+
+.operation-card-labels .bp4-tag .bp4-fill,
+.operation-card-labels .bp4-tag .whitespace-pre {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+body
+  .bp4-card.operation-card
+  .operation-card-labels
+  .bp4-tag.operation-label-blue {
+  background: #dceaff;
+  color: #2457a8;
+}
+
+body
+  .bp4-card.operation-card
+  .operation-card-labels
+  .bp4-tag.operation-label-red {
+  background: #fce1e5;
+  color: #a52c48;
+}
+
+body
+  .bp4-card.operation-card
+  .operation-card-labels
+  .bp4-tag.operation-label-green {
+  background: #d9eee6;
+  color: #22664e;
+}
+
+body
+  .bp4-card.operation-card
+  .operation-card-labels
+  .bp4-tag.operation-label-gold {
+  background: #f6e5b5;
+  color: #795514;
+}
+
+.operation-card-roster-heading {
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+body .bp4-card.operation-card .operation-card-match {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--card-muted);
+  font-size: 12px;
+}
+
+body .bp4-card.operation-card .operation-card-match.is-ready {
+  color: #327346;
+}
+
+body .bp4-card.operation-card .operation-card-match > div {
+  color: inherit;
+}
+
+.operation-card-match strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.operation-card-operators {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px 6px;
+}
+
+body .bp4-card.operation-card .bp4-tag.operation-card-operator {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--card-text);
+  box-shadow: none;
+}
+
+body .bp4-card.operation-card .operation-card-operator > .bp4-fill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  overflow: visible;
+}
+
+body .bp4-card.operation-card .operation-card-operator img {
+  width: min(54px, 100%);
+  height: auto;
+  aspect-ratio: 1;
+  margin: 0;
+}
+
+.operation-card-operator-name {
+  width: 100%;
+  overflow: hidden;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body .bp4-card.operation-card .operation-card-stars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  height: 12px;
+}
+
+.operation-card-stars svg {
+  width: 10px;
+  height: 10px;
+}
+
+body .bp4-card.operation-card .operation-card-operator-stats {
+  display: flex;
+  flex-direction: column;
+  color: var(--card-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.operation-card-operator-stats > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 3px;
+}
+
+.operation-card-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  grid-column: 1 / -1;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.operation-card-group .bp4-tag {
+  flex-shrink: 0;
+}
+
+.operation-card-training-note {
+  grid-column: 1 / -1;
+  color: var(--card-muted);
+  font-size: 12px;
+}
+
+body .bp4-card.operation-card .operation-card-description {
+  flex: 1;
+  min-width: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--card-border);
+  color: var(--card-text);
+}
+
+.operation-card-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  margin: 0 0 8px;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.operation-card-description-links {
+  flex-wrap: wrap;
+  column-gap: 16px;
+  font-size: 12px;
+}
+
+body .bp4-card.operation-card .operation-card-description-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--card-accent);
+}
+
+body .bp4-card.operation-card .operation-card-meta {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  color: var(--card-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+body .bp4-card.operation-card .operation-card-author {
+  flex: 1 1 160px;
+  gap: 6px;
+  color: inherit;
+}
+
+body .bp4-card.operation-card .operation-card-author a {
+  overflow: hidden;
+  color: var(--card-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operation-card-author > :not(a) {
+  flex-shrink: 0;
+}
+
+.operation-card-stat {
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.operation-card-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+body .bp4-card.operation-card .operation-card-actions .bp4-button {
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  background-image: none;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+body .bp4-card.operation-card .bp4-button.operation-card-add,
+body .bp4-card.operation-card .bp4-button.operation-card-download {
+  border-color: var(--card-border);
+  background: transparent;
+  color: var(--card-text);
+}
+
+body .bp4-card.operation-card .operation-card-actions .bp4-icon,
+body .bp4-card.operation-card .operation-card-actions .bp4-button-text {
+  color: inherit;
+}
+
+body .bp4-card.operation-card .bp4-button.operation-card-add .bp4-icon {
+  color: inherit;
+}
+
+body .bp4-card.operation-card .bp4-button.operation-card-copy {
+  border-color: transparent;
+  background: #ad5c16;
+  color: #fff;
+}
+
+body .bp4-card.operation-card .bp4-button.operation-card-add:hover,
+body .bp4-card.operation-card .bp4-button.operation-card-download:hover {
+  background: var(--card-hover);
+}
+
+body .bp4-card.operation-card .bp4-button.operation-card-copy:hover {
+  background: var(--card-accent);
+}
+
+body .bp4-card.operation-card:focus-visible,
+body .bp4-card.operation-card :focus-visible {
+  outline: 2px solid var(--card-accent);
+  outline-offset: 3px;
+}
+
+body.bp4-dark .operation-card,
+.dark .operation-card {
+  --card-surface: #252a31;
+  --card-text: #f2f2f2;
+  --card-muted: #b8bec6;
+  --card-border: #555b63;
+  --card-accent: #f0b578;
+  --card-hover: #333b45;
+}
+
+body.bp4-dark .operation-card .operation-card-match.is-ready {
+  color: #90d3a1;
+}
+
+body.bp4-dark .bp4-card.operation-card .operation-card-labels .bp4-tag {
+  background: #343d49;
+  color: var(--card-text);
+}
+
+body.bp4-dark .operation-card .bp4-button.operation-card-copy:hover {
+  background: #8f5112;
+}
+
+@media (max-width: 480px) {
+  body .bp4-card.operation-card {
+    gap: 10px;
+    padding: 16px 12px;
+  }
+
+  body .bp4-card.operation-card .operation-card-title {
+    min-height: 0;
+    font-size: 18px;
+  }
+
+  .operation-card-actions {
+    gap: 6px;
+  }
+
+  body .bp4-card.operation-card .operation-card-actions .bp4-button {
+    min-height: 40px;
+    padding: 6px 8px;
+  }
+}
