@@ -14,7 +14,7 @@ import clsx from 'clsx'
 import { useAtom, useAtomValue } from 'jotai'
 import { debounce } from 'lodash-es'
 import { MaaUserInfo } from 'maa-copilot-client'
-import { ComponentType, useEffect, useMemo, useState } from 'react'
+import { ComponentType, useCallback, useEffect, useMemo, useState } from 'react'
 
 import { CardTitle } from 'components/CardTitle'
 import { OperationList } from 'components/OperationList'
@@ -38,6 +38,11 @@ import { UserFilter } from './UserFilter'
 export const Operations: ComponentType = withSuspensable(() => {
   const t = useTranslation()
   const matcher = useOperatorMatcher()
+  const [matchedCount, setMatchedCount] = useState(0)
+  const handleOperationsUpdate = useCallback(
+    ({ matched }: { matched: number }) => setMatchedCount(matched),
+    [],
+  )
   const refreshOperations = useRefreshOperations()
   const [queryParams, setQueryParams] = useState<
     Omit<UseOperationsParams, 'operator'>
@@ -235,7 +240,11 @@ export const Operations: ComponentType = withSuspensable(() => {
                 filter={operatorFilter}
                 onChange={setOperatorFilter}
               />
-              <OperatorMatcher key={matcher.userId ?? 'guest'} {...matcher} />
+              <OperatorMatcher
+                key={matcher.userId ?? 'guest'}
+                {...matcher}
+                matchedCount={matcher.filter ? matchedCount : undefined}
+              />
               <div className="flex flex-wrap items-center w-full sm:w-auto sm:ml-auto">
                 <H6 className="mb-0 mr-1 opacity-75">
                   {t.components.Operations.sort_by}
@@ -321,6 +330,7 @@ export const Operations: ComponentType = withSuspensable(() => {
             sunkOperationIds={sunkEnabled ? sunkOperationIds : []}
             operator={operatorFilter.enabled ? operatorFilter : undefined}
             operatorMatcher={matcher.filter}
+            onUpdate={handleOperationsUpdate}
             // 按热度排序时列表前几页的变化不会太频繁，可以不刷新第一页，节省点流量
             revalidateFirstPage={queryParams.orderBy !== 'hot'}
           />

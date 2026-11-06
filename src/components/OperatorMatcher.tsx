@@ -64,7 +64,8 @@ export function OperatorMatcher({
   userId,
   settings,
   setSettings,
-}: ReturnType<typeof useOperatorMatcher>) {
+  matchedCount,
+}: ReturnType<typeof useOperatorMatcher> & { matchedCount?: number }) {
   const t = useTranslation().components.OperatorMatcher
   const [open, setOpen] = useState(false)
   const token = settings.token ?? ''
@@ -230,7 +231,7 @@ export function OperatorMatcher({
         {t.title}
       </Button>
       {snapshot && (
-        <>
+        <div className="flex items-center gap-2">
           <Switch
             className="!mb-0"
             checked={settings.enabled}
@@ -241,7 +242,15 @@ export function OperatorMatcher({
               setSettings((current) => ({ ...current, enabled }))
             }}
           />
-        </>
+          {settings.enabled && matchedCount !== undefined && (
+            <span
+              className="text-sm opacity-75 whitespace-nowrap tabular-nums"
+              aria-live="polite"
+            >
+              {t.matched({ count: matchedCount })}
+            </span>
+          )}
+        </div>
       )}
       <Dialog
         isOpen={open}

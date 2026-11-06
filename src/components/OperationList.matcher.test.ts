@@ -7,12 +7,16 @@ import { Operation } from '../models/operation'
 import { OperatorMatcherFilter } from '../models/operatorMatcher'
 import { OperationList } from './OperationList'
 
-const state = vi.hoisted(() => ({ operations: [] as Operation[] }))
+const state = vi.hoisted(() => ({
+  operations: [] as Operation[],
+  isReachingEnd: true,
+}))
 vi.mock('apis/operation', () => ({
   useOperations: () => ({
     operations: state.operations,
     total: state.operations.length,
-    isReachingEnd: true,
+    isReachingEnd: state.isReachingEnd,
+    isValidating: true,
   }),
 }))
 vi.mock('apis/level', () => ({ useLevels: () => ({ data: [] }) }))
@@ -30,9 +34,9 @@ vi.mock('./operation-set/AddToOperationSet', () => ({
 vi.mock('../i18n/i18n', () => ({
   useTranslation: () => ({
     components: {
-      OperationList: {},
+      OperationList: { load_more: '加载更多' },
       OperatorMatcher: {
-        loaded: ({ matched }: { matched: number }) => `matched: ${matched}`,
+        more_hint: '加载更多可继续查找匹配作业。',
       },
     },
   }),
@@ -42,6 +46,7 @@ let host: HTMLDivElement
 let root: ReturnType<typeof createRoot>
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+  state.isReachingEnd = true
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
@@ -74,18 +79,33 @@ it('filters by ownership and exclusions only, and restores all jobs when disable
       },
     },
   }
+  const onUpdate = vi.fn()
   const render = async (operatorMatcher?: OperatorMatcherFilter) => {
     await act(async () =>
-      root.render(createElement(OperationList, { operatorMatcher })),
+      root.render(createElement(OperationList, { operatorMatcher, onUpdate })),
     )
     return Array.from(host.querySelectorAll('[data-operation-id]'), (element) =>
       Number(element.getAttribute('data-operation-id')),
     )
   }
   expect(await render(filter)).toEqual([1, 3])
+  expect(onUpdate).toHaveBeenLastCalledWith({ total: 4, matched: 2 })
+  expect(host.querySelector('[aria-live]')).toBeNull()
   expect(await render({ ...filter, excludedOperatorIds: [a.id] })).toEqual([3])
+  expect(onUpdate).toHaveBeenLastCalledWith({ total: 4, matched: 1 })
   expect(
     await render({ ...filter, excludedOperatorIds: [a.id, b.id] }),
   ).toEqual([])
+  expect(onUpdate).toHaveBeenLastCalledWith({ total: 4, matched: 0 })
   expect(await render()).toEqual([1, 2, 3, 4])
+
+  state.isReachingEnd = false
+  await render(filter)
+  const hint = host.querySelector('p')!
+  expect(hint.textContent).toBe('加载更多可继续查找匹配作业。')
+  expect(hint.previousElementSibling?.tagName).toBe('UL')
+  expect(hint.nextElementSibling?.textContent).toContain('加载更多')
+  state.isReachingEnd = true
+  await render(filter)
+  expect(host.querySelector('p')).toBeNull()
 })

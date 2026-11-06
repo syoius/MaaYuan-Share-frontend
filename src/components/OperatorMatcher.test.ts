@@ -61,7 +61,12 @@ vi.mock('../i18n/i18n', () => ({
       OperatorMatcher: new Proxy(
         {},
         {
-          get: (_, key) => (key === 'count' ? () => 'count' : String(key)),
+          get: (_, key) =>
+            key === 'count'
+              ? () => 'count'
+              : key === 'matched'
+                ? ({ count }: { count: number }) => `当前匹配 ${count} 份`
+                : String(key),
         },
       ),
     },
@@ -149,6 +154,7 @@ describe('automatic matcher sync', () => {
         settings,
         setSettings,
         filter: undefined,
+        matchedCount: 28,
       })
     }
     await act(async () => root.render(createElement(Harness)))
@@ -158,7 +164,7 @@ describe('automatic matcher sync', () => {
     host.remove()
   })
 
-  it('shows only settings and the enable switch, without status filters', async () => {
+  it('shows the count beside the enable switch and hides it when disabled', async () => {
     expect(
       Array.from(
         host.querySelectorAll('button'),
@@ -169,11 +175,18 @@ describe('automatic matcher sync', () => {
       'input[type="checkbox"]',
     )!
     expect(enabled.checked).toBe(true)
+    const count = host.querySelector('[aria-live="polite"]')!
+    expect(count.textContent).toBe('当前匹配 28 份')
+    expect(count.previousElementSibling?.contains(enabled)).toBe(true)
     await act(async () => enabled.click())
     expect(current.enabled).toBe(false)
+    expect(host.querySelector('[aria-live="polite"]')).toBeNull()
     expect(host.querySelectorAll('button')).toHaveLength(1)
     await act(async () => enabled.click())
     expect(current.enabled).toBe(true)
+    expect(host.querySelector('[aria-live="polite"]')?.textContent).toBe(
+      '当前匹配 28 份',
+    )
     expect(current.snapshot).toEqual(initial.snapshot)
   })
 

@@ -37,7 +37,7 @@ interface OperationListProps extends UseOperationsParams {
   multiselect?: boolean
   showReadStatus?: boolean
   sunkOperationIds?: number[]
-  onUpdate?: (params: { total: number }) => void
+  onUpdate?: (params: { total: number; matched: number }) => void
   /**
    * 扩展：在多选模式下渲染额外的批量操作按钮（如批量删除）。
    * 仅在 multiselect=true 时生效。
@@ -113,10 +113,6 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
     useEffect(() => {
       autoLoads.current = 0
     }, [queryKey, operatorMatcher])
-
-    useEffect(() => {
-      onUpdate?.({ total })
-    }, [total, onUpdate])
 
     const [selectedOperations, setSelectedOperations] = useState<Operation[]>(
       [],
@@ -195,6 +191,11 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
         .filter(Boolean)
       return normalized.every((t) => itemTags.includes(t))
     })
+
+    const matched = displayedOperations.length
+    useEffect(() => {
+      onUpdate?.({ total, matched })
+    }, [total, matched, onUpdate])
 
     const orderedOperations = sunkEnabled
       ? moveSunkOperationsToBottom(displayedOperations, sunkOperationIds ?? [])
@@ -321,15 +322,6 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
           </Callout>
         )}
 
-        {operatorMatcher && (
-          <p className="mb-3 text-sm" aria-live="polite">
-            {t.components.OperatorMatcher.loaded({
-              matched: displayedOperations.length,
-              loaded: operations.length,
-            })}
-            {!isReachingEnd && <> {t.components.OperatorMatcher.more_hint}</>}
-          </p>
-        )}
         {items}
 
         {isReachingEnd && displayedOperations.length === 0 && (
@@ -347,18 +339,25 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
         )}
 
         {!isReachingEnd && (
-          <Button
-            loading={isValidating}
-            text={t.components.OperationList.load_more}
-            icon="more"
-            className="mt-2"
-            large
-            fill
-            onClick={() => {
-              autoLoads.current = 0
-              void setSize((size) => size + 1)
-            }}
-          />
+          <>
+            {operatorMatcher && (
+              <p className="mt-4 mb-0 text-center text-sm opacity-75">
+                {t.components.OperatorMatcher.more_hint}
+              </p>
+            )}
+            <Button
+              loading={isValidating}
+              text={t.components.OperationList.load_more}
+              icon="more"
+              className="mt-2"
+              large
+              fill
+              onClick={() => {
+                autoLoads.current = 0
+                void setSize((size) => size + 1)
+              }}
+            />
+          </>
         )}
       </>
     )
