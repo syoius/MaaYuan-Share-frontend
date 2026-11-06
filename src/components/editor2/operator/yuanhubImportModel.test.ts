@@ -4,6 +4,7 @@ import { OPERATORS } from '../../../models/operator'
 import { normalizeYuanHubTraining } from '../../../models/yuanhubTraining'
 import { defaultEditorState } from '../editor-state'
 import { toMaaOperation } from '../reconciliation'
+import { applyAnyDiscsAndStarStones } from './operatorRequirementModel'
 import {
   mergeImportedOperators,
   yuanHubImportCandidate,
@@ -76,6 +77,35 @@ describe('YuanHub editor import', () => {
     expect(exported.opers?.[0]).toMatchObject({
       disc_star_stones: ['', '天府', '天府'],
       attack: 1234,
+    })
+  })
+  it('preserves YuanHub training through setting any discs/stones and export', () => {
+    const operator = yuanHubImportCandidate(
+      read({
+        level: 100,
+        elite: 17,
+        stars: 5,
+        panel: { status: 'calculated', attack: 1234, hp: 5678 },
+        discs: [[info.discs[0].ot_name]],
+      }),
+      '0',
+    ).operator!
+    const result = applyAnyDiscsAndStarStones(operator)
+    const exported = toMaaOperation({
+      ...defaultEditorState.operation,
+      opers: [result],
+      groups: [],
+      actions: [],
+    })
+    expect(exported.opers?.[0]).toMatchObject({
+      requirements: { level: 100, elite: 17 },
+      star_level: 5,
+      attack: 1234,
+      hp: 5678,
+      unrestricted: false,
+      discs_selected: [0, 0, 0],
+      disc_star_stones: ['任意', '任意', '任意'],
+      disc_assist_stars: ['任意', '任意', '任意'],
     })
   })
   it('keeps old roster compatibility but never guesses compressed star slots', () => {

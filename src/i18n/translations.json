@@ -1043,8 +1043,8 @@
           "zh_tw": "當前等級未解鎖該技能"
         },
         "any_requirements": {
-          "cn": "一键任意",
-          "zh_tw": "一鍵任意"
+          "cn": "命盘/星石任意",
+          "zh_tw": "命盤/星石任意"
         }
       },
       "OperatorStarStonePresetSelect": {

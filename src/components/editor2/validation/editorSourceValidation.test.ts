@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { applyAnyDiscsAndStarStones } from '../operator/operatorRequirementModel'
 import type { EditorMetadata, EditorOperation, EditorOperator } from '../types'
 import { validateOriginalOperatorRequirements } from './editorSourceValidation'
 
@@ -41,6 +42,28 @@ describe('editor source validation', () => {
         fields: ['starLevel', 'disc', 'starStone'],
       },
     ])
+  })
+
+  it('still requires star level after setting any discs and star stones', () => {
+    const result = applyAnyDiscsAndStarStones(operator({ unrestricted: true }))
+    expect(
+      validateOriginalOperatorRequirements(
+        metadata('original'),
+        operation([result]),
+      ),
+    ).toEqual([
+      {
+        operatorId: result.id,
+        operatorName: result.name,
+        fields: ['starLevel'],
+      },
+    ])
+    expect(
+      validateOriginalOperatorRequirements(
+        metadata('original'),
+        operation([{ ...result, starLevel: 5 }]),
+      ),
+    ).toEqual([])
   })
 
   it('accepts completed original requirements from extension-backed values', () => {

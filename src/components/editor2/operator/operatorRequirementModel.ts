@@ -27,24 +27,20 @@ const ANY_REQUIREMENT_DISC_SLOTS = [0, 1, 2].map((index) => ({
 }))
 
 /**
- * 将密探一键设为“不限练度/命盘/星石”。
- * 会清空具体练度与数值，并将命盘/星石槽位显示为“任意”。
+ * 仅将命盘/星石槽位设为“任意”，保留具体练度与数值。
  */
-export function applyAnyRequirements(operator: EditorOperator): EditorOperator {
+export function applyAnyDiscsAndStarStones(
+  operator: EditorOperator,
+): EditorOperator {
   return {
     ...operator,
-    unrestricted: true,
-    requirements: undefined,
-    starLevel: undefined,
-    attack: undefined,
-    hp: undefined,
+    unrestricted: false,
     discsSelected: [0, 0, 0],
     discStarStones: ['任意', '任意', '任意'],
     discAssistStars: ['任意', '任意', '任意'],
     extensions: {
       version: 1,
       ...(operator.extensions ?? {}),
-      stats: undefined,
       discs: {
         slots: ANY_REQUIREMENT_DISC_SLOTS,
       },

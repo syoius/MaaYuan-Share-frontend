@@ -43,7 +43,7 @@ import {
   OPERATOR_ELITE_MIN,
   OPERATOR_LEVEL_MAX,
   OPERATOR_LEVEL_MIN,
-  applyAnyRequirements,
+  applyAnyDiscsAndStarStones,
   getMaxEliteForLevel,
 } from './operatorRequirementModel'
 
@@ -300,11 +300,11 @@ export const OperatorItem: FC<OperatorItemProps> = memo(
               minimal
               onClick={() =>
                 edit(() => {
-                  const next = applyAnyRequirements(operator)
+                  const next = applyAnyDiscsAndStarStones(operator)
                   onChange?.(next)
                   return {
-                    action: 'apply-operator-any-requirements',
-                    desc: '设置密探任意练度/命盘/星石',
+                    action: 'apply-operator-any-discs-and-star-stones',
+                    desc: '设置密探命盘/星石任意',
                     squashBy: operator.id,
                   }
                 })
