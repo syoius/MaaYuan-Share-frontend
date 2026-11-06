@@ -64,14 +64,14 @@ describe('operatorDiscModel', () => {
     ])
   })
 
-  it('moves a duplicate star selection to the edited slot', () => {
+  it('preserves repeated equipped stars in separate slots', () => {
     const operator = setDiscSlot(createOperator(), 2, {
       starStone: '天府',
       assistStar: '红鸾',
     })
 
-    expect(operator.discStarStones).toEqual(['', '天相', '天府'])
-    expect(operator.discAssistStars).toEqual(['', '阴煞', '红鸾'])
+    expect(operator.discStarStones).toEqual(['天府', '天相', '天府'])
+    expect(operator.discAssistStars).toEqual(['红鸾', '阴煞', '红鸾'])
   })
 
   it('keeps existing slot behavior when changing a duplicate disc', () => {

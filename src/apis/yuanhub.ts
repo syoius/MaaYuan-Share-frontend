@@ -5,6 +5,7 @@ import {
   normalizeYuanHubAccounts,
   normalizeYuanHubSnapshot,
 } from '../models/operatorMatcher'
+import { normalizeYuanHubTraining } from '../models/yuanhubTraining'
 import { authAtom } from '../store/auth'
 import { TokenManager } from '../utils/token-manager'
 
@@ -70,6 +71,24 @@ export async function readYuanHubSnapshot(
   account: YuanHubAccount,
 ) {
   return normalizeYuanHubSnapshot(
+    await readYuanHub(
+      `accounts/${encodeURIComponent(account.id)}/roster`,
+      token,
+      ownerId,
+      signal,
+    ),
+    { connectionId, accountId: account.id, game: account.game },
+  )
+}
+
+export async function readYuanHubTraining(
+  token: string,
+  ownerId: string,
+  signal: AbortSignal,
+  connectionId: string,
+  account: YuanHubAccount,
+) {
+  return normalizeYuanHubTraining(
     await readYuanHub(
       `accounts/${encodeURIComponent(account.id)}/roster`,
       token,

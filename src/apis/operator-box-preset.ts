@@ -1,8 +1,3 @@
-import type {
-  OperatorBoxPresetCreateReq,
-  OperatorBoxPresetDeleteReq,
-  OperatorBoxPresetUpdateReq,
-} from 'maa-copilot-client'
 import { useAtomValue } from 'jotai'
 import useSWR from 'swr'
 
@@ -24,30 +19,4 @@ export function useOperatorBoxPresets() {
     },
     { revalidateOnFocus: false },
   )
-}
-
-export async function createOperatorBoxPreset(
-  req: OperatorBoxPresetCreateReq,
-) {
-  const response = await new OperatorBoxPresetApi({
-    requireData: true,
-  }).createOperatorBoxPreset({ operatorBoxPresetCreateReq: req })
-  return response.data
-}
-
-export async function updateOperatorBoxPreset(
-  req: OperatorBoxPresetUpdateReq,
-) {
-  const response = await new OperatorBoxPresetApi({
-    requireData: true,
-  }).updateOperatorBoxPreset({ operatorBoxPresetUpdateReq: req })
-  return response.data
-}
-
-export async function deleteOperatorBoxPreset(
-  req: OperatorBoxPresetDeleteReq,
-) {
-  await new OperatorBoxPresetApi().deleteOperatorBoxPreset({
-    operatorBoxPresetDeleteReq: req,
-  })
 }

@@ -26,6 +26,8 @@ import { EntityIssue } from "../validation/validation";
 import { OperatorItem } from "./OperatorItem";
 import { OperatorSelect } from "./OperatorSelect";
 import { OperatorBoxPresetSelect } from "./sheet/OperatorBoxPresetSelect";
+import { YuanHubOperatorImport } from "./YuanHubOperatorImport";
+import { mergeImportedOperators, OperatorImportMode } from "./yuanhubImportModel";
 import { useAddOperator } from "./useAddOperator";
 
 const globalContainerId = "global";
@@ -50,11 +52,15 @@ export const OperatorEditor: FC = memo(() => {
   );
   const [operatorAtoms, dispatchOperators] = useAtom(editorAtoms.operatorAtoms);
 
-  const replaceOperators = useCallback(
-    (nextOperators: EditorOperator[]) => {
+  const operationForImport = useAtomValue(editorAtoms.operation);
+  const importOperators = useCallback(
+    (nextOperators: EditorOperator[], mode: OperatorImportMode) => {
       edit((get, set) => {
         const operation = get(editorAtoms.operation);
-        set(editorAtoms.operation, { ...operation, opers: nextOperators });
+        set(editorAtoms.operation, {
+          ...operation,
+          opers: mergeImportedOperators(operation.opers, nextOperators, operation.groups.length, mode),
+        });
         return {
           action: "add-operator",
           desc: i18n.actions.editor2.add_operator,
@@ -96,9 +102,18 @@ export const OperatorEditor: FC = memo(() => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-600">
+      <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 dark:border-gray-600">
         <CreateOperatorButton />
-        <OperatorBoxPresetSelect onApplyOperators={replaceOperators} />
+        <YuanHubOperatorImport
+          currentOperators={operationForImport.opers}
+          groupCount={operationForImport.groups.length}
+          onApply={importOperators}
+        />
+        <OperatorBoxPresetSelect
+          currentOperators={operationForImport.opers}
+          groupCount={operationForImport.groups.length}
+          onApply={importOperators}
+        />
       </div>
       <div className="grow md:overflow-auto px-4 pt-4">
         <OperatorError />

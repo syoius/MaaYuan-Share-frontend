@@ -1,202 +1,110 @@
-import { act, createElement } from "react";
-import { type Root, createRoot } from "react-dom/client";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { act, createElement } from 'react'
+import { Root, createRoot } from 'react-dom/client'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-import { OperatorBoxPresetSelect } from "./OperatorBoxPresetSelect";
+import { OperatorBoxPresetSelect } from './OperatorBoxPresetSelect'
 
 const mocks = vi.hoisted(() => ({
-  existedOperators: [{ name: "密探甲" }] as Array<{ name: string }>,
-  loadConfigs: vi.fn(),
+  load: vi.fn(),
   presets: [
     {
-      id: "box-a",
-      label: "Box A",
-      members: [
-        { operatorKey: "密探丙", order: 3 },
-        { operatorKey: "密探甲", order: 1 },
-        { operatorKey: "密探乙", order: 2 },
-      ],
+      id: 'box',
+      label: '旧队伍',
+      members: Array.from({ length: 7 }, (_, i) => ({
+        operatorKey: `密探${i}`,
+        order: i,
+      })),
     },
   ],
-  submitOperator: vi.fn(
-    (_operator: { name: string; requirements: { level?: number } }) => true,
-  ),
-  removeOperator: vi.fn(),
-  navigate: vi.fn(),
-  toasterShow: vi.fn(),
-}));
+}))
+vi.mock('../../../../apis/operator-box-preset', () => ({
+  useOperatorBoxPresets: () => ({ data: mocks.presets }),
+}))
+vi.mock('../../../../apis/operator-box-training-config', () => ({
+  loadOperatorBoxTrainingConfigs: mocks.load,
+}))
+let root: Root
+let container: HTMLDivElement
+beforeEach(() => {
+  ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true
+  container = document.createElement('div')
+  document.body.append(container)
+  root = createRoot(container)
+  mocks.load.mockResolvedValue([{ operatorId: '密探6', level: 88 }])
+})
+afterEach(async () => {
+  await act(async () => root.unmount())
+  container.remove()
+  ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = false
+})
 
-vi.mock("../../../../apis/operator-box-training-config", () => ({
-  loadOperatorBoxTrainingConfigs: mocks.loadConfigs,
-}));
+it('keeps every old member and imports only the chosen member with its saved config', async () => {
+  const apply = vi.fn()
+  await act(async () =>
+    root.render(
+      createElement(OperatorBoxPresetSelect, {
+        currentOperators: [],
+        groupCount: 0,
+        onApply: apply,
+      }),
+    ),
+  )
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('button[title="旧队伍"]')!
+      .click(),
+  )
+  const checkboxes = Array.from(
+    document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+  )
+  expect(checkboxes).toHaveLength(7)
+  expect(apply).not.toHaveBeenCalled()
+  await act(async () => checkboxes[6].click())
+  await act(async () =>
+    Array.from(document.querySelectorAll('button'))
+      .find((button) => button.textContent === '追加所选密探')!
+      .click(),
+  )
+  expect(apply).toHaveBeenCalledWith(
+    [
+      expect.objectContaining({
+        name: '密探6',
+        requirements: expect.objectContaining({ level: 88 }),
+      }),
+    ],
+    'append',
+  )
+  expect(mocks.presets[0].members).toHaveLength(7)
+})
 
-vi.mock("../../../../apis/operator-box-preset", () => ({
-  useOperatorBoxPresets: () => ({
-    data: mocks.presets,
-    error: undefined,
-    isLoading: false,
-  }),
-}));
-
-vi.mock("../../../editor/operator/sheet/SheetProvider", () => ({
-  useSheet: () => ({
-    existedOperators: mocks.existedOperators,
-    removeOperator: mocks.removeOperator,
-    submitOperatorInSheet: mocks.submitOperator,
-  }),
-}));
-
-vi.mock("../../../Toaster", () => ({
-  AppToaster: { show: mocks.toasterShow },
-}));
-
-vi.mock("react-router-dom", () => ({
-  useNavigate: () => mocks.navigate,
-}));
-
-vi.mock("../../../../i18n/i18n", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../../../i18n/i18n")>()),
-  useTranslation: () => ({
-    common: { loading: "加载中" },
-    components: { OperatorFilter: { box_presets: "阵容预设" } },
-  }),
-}));
-
-const reactTestEnvironment = globalThis as typeof globalThis & {
-  IS_REACT_ACT_ENVIRONMENT: boolean;
-};
-
-describe("OperatorBoxPresetSelect", () => {
-  let container: HTMLDivElement;
-  let root: Root;
-
-  beforeAll(() => {
-    reactTestEnvironment.IS_REACT_ACT_ENVIRONMENT = true;
-  });
-
-  afterAll(() => {
-    reactTestEnvironment.IS_REACT_ACT_ENVIRONMENT = false;
-  });
-
-  beforeEach(() => {
-    mocks.existedOperators = [{ name: "密探甲" }];
-    mocks.loadConfigs.mockReset();
-    mocks.loadConfigs.mockResolvedValue([
-      {
-        boxId: "box-a",
-        operatorId: "密探乙",
-        level: 50,
-        updateTime: new Date(),
-      },
-    ]);
-    mocks.submitOperator.mockReset();
-    mocks.submitOperator.mockReturnValue(true);
-    mocks.removeOperator.mockReset();
-    mocks.navigate.mockReset();
-    mocks.toasterShow.mockReset();
-    container = document.createElement("div");
-    document.body.append(container);
-    root = createRoot(container);
-  });
-
-  afterEach(async () => {
-    await act(async () => root.unmount());
-    container.remove();
-    document.querySelectorAll(".bp4-portal").forEach((portal) => portal.remove());
-    vi.clearAllMocks();
-  });
-
-  it("replaces the current selection with ordered Box members", async () => {
-    await act(async () =>
-      root.render(createElement(OperatorBoxPresetSelect, { maxSelected: 3 })),
-    );
-
-    await act(async () => {
-      container.querySelector<HTMLButtonElement>('button[title="Box A"]')?.click();
-    });
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(mocks.loadConfigs).toHaveBeenCalledWith("box-a");
-    expect(mocks.removeOperator).toHaveBeenCalledWith([0]);
-    expect(mocks.submitOperator).toHaveBeenCalledTimes(3);
-    expect(mocks.submitOperator.mock.calls.map(([operator]) => operator.name)).toEqual([
-      "密探甲",
-      "密探乙",
-      "密探丙",
-    ]);
-    expect(mocks.submitOperator.mock.calls.at(1)?.[0].requirements.level).toBe(50);
-  });
-
-  it("stops when the preset exceeds the editor's operator limit", async () => {
-    await act(async () =>
-      root.render(createElement(OperatorBoxPresetSelect, { maxSelected: 2 })),
-    );
-
-    await act(async () => {
-      container.querySelector<HTMLButtonElement>('button[title="Box A"]')?.click();
-    });
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(mocks.removeOperator).toHaveBeenCalledWith([0]);
-    expect(mocks.submitOperator).toHaveBeenCalledTimes(2);
-    expect(mocks.submitOperator).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "密探乙" }),
-    );
-  });
-
-  it("uses the editor callback when rendered outside the sheet provider", async () => {
-    const applyOperators = vi.fn();
-    await act(async () =>
-      root.render(
-        createElement(OperatorBoxPresetSelect, {
-          maxSelected: 3,
-          onApplyOperators: applyOperators,
-        }),
-      ),
-    );
-
-    await act(async () => {
-      container.querySelector<HTMLButtonElement>('button[title="Box A"]')?.click();
-    });
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(applyOperators).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ name: "密探甲" }),
-        expect.objectContaining({ name: "密探乙" }),
-        expect.objectContaining({ name: "密探丙" }),
-      ]),
-    );
-    expect(mocks.removeOperator).not.toHaveBeenCalled();
-    expect(mocks.submitOperator).not.toHaveBeenCalled();
-  });
-
-  it("links to the operator recorder when no presets exist", async () => {
-    mocks.presets = [];
-    await act(async () => root.render(createElement(OperatorBoxPresetSelect)));
-
-    const createPresetButton = container.querySelector<HTMLButtonElement>(
-      'button[title="没有阵容预设？快去创建一个吧"]',
-    );
-    expect(createPresetButton?.textContent).toContain("没有阵容预设？快去创建一个吧");
-
-    await act(async () => createPresetButton?.click());
-
-    expect(mocks.navigate).toHaveBeenCalledWith("/operator-recorder");
-  });
-});
+it('closing a pending read never applies it', async () => {
+  let resolve!: (value: unknown[]) => void
+  mocks.load.mockReturnValue(
+    new Promise((done) => {
+      resolve = done
+    }),
+  )
+  const apply = vi.fn()
+  await act(async () =>
+    root.render(
+      createElement(OperatorBoxPresetSelect, {
+        currentOperators: [],
+        groupCount: 0,
+        onApply: apply,
+      }),
+    ),
+  )
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('button[title="旧队伍"]')!
+      .click(),
+  )
+  await act(async () =>
+    document
+      .querySelector<HTMLButtonElement>('.bp4-dialog-close-button')!
+      .click(),
+  )
+  await act(async () => resolve([]))
+  expect(apply).not.toHaveBeenCalled()
+  expect(document.querySelectorAll('input[type="checkbox"]')).toHaveLength(0)
+})

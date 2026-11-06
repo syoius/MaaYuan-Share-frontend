@@ -1,123 +1,116 @@
-import { Button } from "@blueprintjs/core";
-import { useNavigate } from "react-router-dom";
+import { Button, Callout, Dialog, DialogBody } from '@blueprintjs/core'
 
-import { useState } from "react";
+import { useAtomValue } from 'jotai'
+import { useEffect, useRef, useState } from 'react'
 
-import { loadOperatorBoxTrainingConfigs } from "../../../../apis/operator-box-training-config";
-import { useOperatorBoxPresets } from "../../../../apis/operator-box-preset";
-import { AppToaster } from "../../../Toaster";
-import { useSheet } from "../../../editor/operator/sheet/SheetProvider";
-import { useTranslation } from "../../../../i18n/i18n";
-import { getOperatorBoxKeys } from "../../../../models/operator-box-preset";
-import { formatError } from "../../../../utils/error";
-import { createOperator } from "../../reconciliation";
-import type { EditorOperator } from "../../editor-state";
-import { MAX_ACTIVE_OPERATORS } from "../constants";
-import { applyOperatorTrainingConfig } from "../operatorTrainingConfigModel";
+import { useOperatorBoxPresets } from '../../../../apis/operator-box-preset'
+import { loadOperatorBoxTrainingConfigs } from '../../../../apis/operator-box-training-config'
+import { getOperatorBoxKeys } from '../../../../models/operator-box-preset'
+import { authAtom } from '../../../../store/auth'
+import { formatError } from '../../../../utils/error'
+import { createOperator } from '../../reconciliation'
+import {
+  OperatorImportPreview,
+  OperatorImportTarget,
+} from '../OperatorImportPreview'
+import { applyOperatorTrainingConfig } from '../operatorTrainingConfigModel'
+import type { OperatorImportCandidate } from '../yuanhubImportModel'
 
-interface OperatorBoxPresetSelectProps {
-  maxSelected?: number;
-  onApplyOperators?: (operators: EditorOperator[]) => void;
-}
-
-export function OperatorBoxPresetSelect({
-  maxSelected = MAX_ACTIVE_OPERATORS,
-  onApplyOperators,
-}: OperatorBoxPresetSelectProps) {
-  const t = useTranslation();
-  const navigate = useNavigate();
-  const { data: presets = [], error, isLoading } = useOperatorBoxPresets();
-  const { existedOperators, removeOperator, submitOperatorInSheet } = useSheet();
-  const [applyingId, setApplyingId] = useState<string>();
-
-  const applyPreset = async (presetId: string) => {
-    if (applyingId) return;
-    const preset = presets.find((candidate) => candidate.id === presetId);
-    if (!preset) return;
-
-    setApplyingId(preset.id);
-    try {
-      const configs = await loadOperatorBoxTrainingConfigs(preset.id);
-      const configsByOperatorId = new Map(
-        configs.map((config) => [config.operatorId, config]),
-      );
-
-      let remainingSlots = maxSelected;
-      const presetOperators: EditorOperator[] = [];
-
-      for (const name of getOperatorBoxKeys(preset)) {
-        if (remainingSlots <= 0) break;
-
-        const baseOperator = createOperator({ name });
-        const config = configsByOperatorId.get(name);
-        const operator = config
-          ? applyOperatorTrainingConfig(baseOperator, config)
-          : baseOperator;
-        presetOperators.push(operator);
-        remainingSlots -= 1;
-      }
-
-      if (onApplyOperators) {
-        onApplyOperators(presetOperators);
-        return;
-      }
-
-      // A preset represents a complete lineup. Clear the current selection
-      // before applying it so old operators do not consume preset slots.
-      if (existedOperators.length > 0) {
-        removeOperator(existedOperators.map((_, index) => index));
-      }
-      for (const operator of presetOperators) {
-        submitOperatorInSheet(operator);
-      }
-    } catch (caught) {
-      AppToaster.show({ intent: "danger", message: formatError(caught) });
-    } finally {
-      setApplyingId(undefined);
+export function OperatorBoxPresetSelect(props: OperatorImportTarget) {
+  const { userId } = useAtomValue(authAtom)
+  const { data: presets = [], error, isLoading } = useOperatorBoxPresets()
+  const [selected, setSelected] = useState<string>()
+  const [candidates, setCandidates] = useState<OperatorImportCandidate[]>()
+  const [loadError, setLoadError] = useState('')
+  const sequence = useRef({ id: 0 })
+  useEffect(() => {
+    setSelected(undefined)
+    setCandidates(undefined)
+    const requests = sequence.current
+    return () => {
+      requests.id++
     }
-  };
-
+  }, [userId])
+  const close = () => {
+    sequence.current.id++
+    setSelected(undefined)
+    setCandidates(undefined)
+  }
+  const load = async (id: string) => {
+    const preset = presets.find((item) => item.id === id)
+    if (!preset) return
+    const request = ++sequence.current.id
+    setSelected(preset.label)
+    setCandidates(undefined)
+    setLoadError('')
+    try {
+      const configs = await loadOperatorBoxTrainingConfigs(id)
+      if (request !== sequence.current.id) return
+      setCandidates(
+        getOperatorBoxKeys(preset).map((name) => {
+          const base = createOperator({ name })
+          const config = configs.find((item) => item.operatorId === name)
+          return {
+            key: name,
+            label: name,
+            warnings: [],
+            operator: config ? applyOperatorTrainingConfig(base, config) : base,
+          }
+        }),
+      )
+    } catch (caught) {
+      if (request === sequence.current.id) setLoadError(formatError(caught))
+    }
+  }
   return (
-    <div
-      className="flex flex-wrap items-center gap-1"
-      aria-label={t.components.OperatorFilter.box_presets}
-    >
+    <>
       {isLoading ? (
-        <Button minimal disabled loading className="!py-1.5">
-          {t.common.loading}
-        </Button>
-      ) : !error && presets.length === 0 ? (
-        <Button
-          minimal
-          intent="primary"
-          icon="plus"
-          className="!py-1.5"
-          title="没有阵容预设？快去创建一个吧"
-          onClick={() => navigate("/operator-recorder")}
-        >
-          没有阵容预设？快去创建一个吧
+        <Button minimal disabled loading>
+          读取旧预设
         </Button>
       ) : error ? (
-        <Button minimal disabled intent="danger" title={formatError(error)} className="!py-1.5">
-          {formatError(error)}
-        </Button>
+        <Callout intent="danger">{formatError(error)}</Callout>
       ) : (
         presets.map((preset) => (
           <Button
-            key={preset.id}
             minimal
-            intent="primary"
+            key={preset.id}
             icon="people"
-            disabled={Boolean(applyingId)}
-            loading={applyingId === preset.id}
             title={preset.label}
-            className="!py-1.5"
-            onClick={() => void applyPreset(preset.id)}
+            onClick={() => void load(preset.id)}
           >
-            {preset.label}
+            旧预设：{preset.label}
           </Button>
         ))
       )}
-    </div>
-  );
+      <Dialog
+        isOpen={selected !== undefined}
+        onClose={close}
+        canOutsideClickClose={false}
+        title={`套用旧预设：${selected ?? ''}`}
+        className="!w-[92vw] sm:!w-[640px]"
+        style={{ maxHeight: '90dvh' }}
+      >
+        <DialogBody className="overflow-y-auto">
+          <p>旧预设仅供读取。选择本次使用的密探，原预设成员与配置不会改变。</p>
+          {loadError ? (
+            <Callout intent="danger" role="alert">
+              {loadError}
+            </Callout>
+          ) : candidates ? (
+            <OperatorImportPreview
+              {...props}
+              candidates={candidates}
+              onApply={(operators, mode) => {
+                props.onApply(operators, mode)
+                close()
+              }}
+            />
+          ) : (
+            <p role="status">正在读取配置…</p>
+          )}
+        </DialogBody>
+      </Dialog>
+    </>
+  )
 }

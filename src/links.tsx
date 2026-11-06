@@ -17,11 +17,6 @@ export const NAV_CONFIG = [
     icon: <Icon icon="annotation" />,
   },
   {
-    to: "/operator-recorder",
-    labelKey: i18nDefer.links.operator_recorder,
-    icon: <Icon icon="people" />,
-  },
-  {
     to: "/about",
     labelKey: i18nDefer.links.about,
     icon: <Icon icon="info-sign" />,

@@ -47,6 +47,7 @@ export type EditorOperationBase = Simplify<
 // Editor-only 扩展容器（v1）：统一承载命盘/星石/辅星与基础数值
 export interface EditorOperatorExtensionsV1 {
   version: 1;
+  importedTraining?: boolean;
   discs?: {
     // 固定最多 3 槽；允许未满 3 长度；读写时请自行填充
     slots: Array<{

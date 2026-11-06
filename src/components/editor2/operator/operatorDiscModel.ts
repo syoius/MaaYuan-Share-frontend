@@ -152,30 +152,6 @@ export function setDiscSlot(
     }
   }
 
-  const chosenMainStar = updates.starStone
-  if (chosenMainStar && chosenMainStar !== '任意') {
-    for (let index = 0; index < nextSlots.length; index++) {
-      if (
-        nextSlots[index].index !== slotIndex &&
-        nextSlots[index].starStone === chosenMainStar
-      ) {
-        nextSlots[index] = { ...nextSlots[index], starStone: '' }
-      }
-    }
-  }
-
-  const chosenAssistStar = updates.assistStar
-  if (chosenAssistStar && chosenAssistStar !== '任意') {
-    for (let index = 0; index < nextSlots.length; index++) {
-      if (
-        nextSlots[index].index !== slotIndex &&
-        nextSlots[index].assistStar === chosenAssistStar
-      ) {
-        nextSlots[index] = { ...nextSlots[index], assistStar: '' }
-      }
-    }
-  }
-
   return withDiscSlots(operator, nextSlots)
 }
 

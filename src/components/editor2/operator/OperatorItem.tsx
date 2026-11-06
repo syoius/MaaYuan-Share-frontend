@@ -334,7 +334,12 @@ export const OperatorItem: FC<OperatorItemProps> = memo(
                       min={0}
                       buttonPosition={isMD ? 'right' : 'none'}
                       title={'生命值'}
-                      value={Math.max(0, getStats(operator, info?.rarity).hp)}
+                      value={
+                        operator.extensions?.importedTraining &&
+                        operator.hp === undefined
+                          ? ''
+                          : Math.max(0, getStats(operator, info?.rarity).hp)
+                      }
                       containerClassName="flex-1 min-w-0"
                       inputClassName={clsx(
                         'h-6 !w-24 !px-2 !leading-8',
@@ -371,10 +376,12 @@ export const OperatorItem: FC<OperatorItemProps> = memo(
                       min={0}
                       buttonPosition={isMD ? 'right' : 'none'}
                       title={'攻击力'}
-                      value={Math.max(
-                        0,
-                        getStats(operator, info?.rarity).attack,
-                      )}
+                      value={
+                        operator.extensions?.importedTraining &&
+                        operator.attack === undefined
+                          ? ''
+                          : Math.max(0, getStats(operator, info?.rarity).attack)
+                      }
                       containerClassName="flex-1 min-w-0"
                       inputClassName={clsx(
                         'h-6 !w-24 !px-2 !leading-8',
@@ -416,11 +423,16 @@ export const OperatorItem: FC<OperatorItemProps> = memo(
                       max={OPERATOR_LEVEL_MAX}
                       buttonPosition={isMD ? 'right' : 'none'}
                       title="密探等级"
-                      value={clamp(
-                        requirements.level ?? OPERATOR_LEVEL_MIN,
-                        OPERATOR_LEVEL_MIN,
-                        OPERATOR_LEVEL_MAX,
-                      )}
+                      value={
+                        operator.extensions?.importedTraining &&
+                        operator.requirements?.level === undefined
+                          ? ''
+                          : clamp(
+                              requirements.level ?? OPERATOR_LEVEL_MIN,
+                              OPERATOR_LEVEL_MIN,
+                              OPERATOR_LEVEL_MAX,
+                            )
+                      }
                       containerClassName="flex-1 min-w-0"
                       inputClassName="h-6 !w-24 !px-2 !leading-8 text-center font-bold text-base !rounded-md !border-2"
                       onValueChange={(_, valueStr) => {
@@ -433,10 +445,14 @@ export const OperatorItem: FC<OperatorItemProps> = memo(
                             OPERATOR_LEVEL_MIN,
                             OPERATOR_LEVEL_MAX,
                           )
-                          const elite = Math.min(
-                            requirements.elite ?? OPERATOR_ELITE_MIN,
-                            getMaxEliteForLevel(level),
-                          )
+                          const elite =
+                            operator.extensions?.importedTraining &&
+                            operator.requirements?.elite === undefined
+                              ? undefined
+                              : Math.min(
+                                  requirements.elite ?? OPERATOR_ELITE_MIN,
+                                  getMaxEliteForLevel(level),
+                                )
                           const next: EditorOperator = {
                             ...operator,
                             unrestricted: false,
@@ -469,13 +485,18 @@ export const OperatorItem: FC<OperatorItemProps> = memo(
                       )}
                       buttonPosition={isMD ? 'right' : 'none'}
                       title="密探修为"
-                      value={clamp(
-                        requirements.elite ?? OPERATOR_ELITE_MIN,
-                        OPERATOR_ELITE_MIN,
-                        getMaxEliteForLevel(
-                          requirements.level ?? OPERATOR_LEVEL_MIN,
-                        ),
-                      )}
+                      value={
+                        operator.extensions?.importedTraining &&
+                        operator.requirements?.elite === undefined
+                          ? ''
+                          : clamp(
+                              requirements.elite ?? OPERATOR_ELITE_MIN,
+                              OPERATOR_ELITE_MIN,
+                              getMaxEliteForLevel(
+                                requirements.level ?? OPERATOR_LEVEL_MIN,
+                              ),
+                            )
+                      }
                       containerClassName="flex-1 min-w-0"
                       inputClassName="h-6 !w-24 !px-2 !leading-8 text-center font-bold text-base !rounded-md !border-2"
                       onValueChange={(_, valueStr) => {
@@ -538,25 +559,12 @@ export const OperatorItem: FC<OperatorItemProps> = memo(
                         ? discList[selectedDiscIndex1 - 1]
                         : undefined
                     const selectableMainStarOptions = MAIN_STAR_OPTIONS.filter(
-                      (item) =>
-                        getMainStarAvailability(item, info).available &&
-                        (item === '任意' ||
-                          !discSlots.some(
-                            (candidate) =>
-                              candidate.index !== slot &&
-                              candidate.starStone === item,
-                          )),
+                      (item) => getMainStarAvailability(item, info).available,
                     )
                     const selectableAssistStarOptions =
                       ASSIST_STAR_OPTIONS.filter(
                         (item) =>
-                          getAssistStarAvailability(item, info).available &&
-                          (item === '任意' ||
-                            !discSlots.some(
-                              (candidate) =>
-                                candidate.index !== slot &&
-                                candidate.assistStar === item,
-                            )),
+                          getAssistStarAvailability(item, info).available,
                       )
                     return (
                       <li
@@ -745,14 +753,7 @@ export const OperatorItem: FC<OperatorItemProps> = memo(
                               item,
                               info,
                             )
-                            const selectedElsewhere =
-                              item !== '任意' &&
-                              discSlots.some(
-                                (candidate) =>
-                                  candidate.index !== slot &&
-                                  candidate.starStone === item,
-                              )
-                            if (!availability.available || selectedElsewhere) {
+                            if (!availability.available) {
                               return
                             }
                             edit(() => {
@@ -815,14 +816,7 @@ export const OperatorItem: FC<OperatorItemProps> = memo(
                               item,
                               info,
                             )
-                            const selectedElsewhere =
-                              item !== '任意' &&
-                              discSlots.some(
-                                (candidate) =>
-                                  candidate.index !== slot &&
-                                  candidate.assistStar === item,
-                              )
-                            if (!availability.available || selectedElsewhere) {
+                            if (!availability.available) {
                               return
                             }
                             edit(() => {

@@ -160,3 +160,16 @@ Vite 仅在设置 `DEV_API_PROXY` 时代理 `/api` 并去掉该前缀。Share �
 作业／作业集列表及作业集短码查询设置 15 秒总等待上限，覆盖等待鉴权、请求与响应体读取；超时会中止搜索请求并显示「搜索请求超时，请重试」。点击「重试」保留当前查询条件，下一页加载失败也保留已加载卡片。超时不进行连续自动重试；上传、修改、删除等写入请求不使用此搜索时限。
 
 超时回归：`yarn test src/utils/search-timeout.test.ts src/apis/search-timeout.test.ts src/components/OperationList.matcher.test.ts`。
+
+
+## YuanHub 作业编辑导入与绣衣楼停用
+
+作业编辑器的「从 YuanHub 导入」复用 `ymatch_` 只读连接。读取账号和最新档案后，选择密探及一套实际命盘，明确追加或替换固定阵容；候选分组保留并计入五人位置上限。导入可撤销，不改写 YuanHub、旧预设或首页匹配开关/账号/排除名单。首次可在弹窗打开 YuanHub 个人中心获取连接码；已有匹配连接码仅用于预填，新填的码不在导入弹窗持久保存。
+
+导入等级、修为、整星和权限允许的计算面板；缺失值不补零，超出本站范围或无法识别的命盘/星石会提示手动填写。星级不包含完整化极阶段与觉醒信息。命盘按密探目录名称映射，只导入选中的实际方案；星石按固定槽位复制，保留空槽和同名星石。旧版上游仍可导入基础档案与命盘，但没有结构化槽位时不从压缩名称列表猜测星石位置。完整档案仅保留在本次弹窗内存中，所选养成复制进当前作业后随正常草稿保存；不会自动随 YuanHub 更新。
+
+绣衣楼主导航与所有配置入口已停用，`/operator-recorder` 保留说明和编辑器链接。已有预设继续在作业编辑器与原有手动筛选中使用；编辑器显示完整成员供勾选，不截断或改写超过五人的预设。服务器数据不迁移、不删除；不再新增、修改或保存 Box 练度。独立命盘/星石预设不受影响。
+
+发布顺序：先发布 YuanHub 后端兼容新增 `disc_loadouts`、`star_slots`，再发布分享站前端，最后发布分享站后端停用 Box 写入（返回业务状态码 410，保留读取）。如回退分享站前端，旧配置页面仍可能存在，但后端会拒绝写入。
+
+定向验证：`npx vitest run src/components/editor2/operator/YuanHubOperatorImport.test.ts src/components/editor2/operator/yuanhubImportModel.test.ts src/components/editor2/operator/sheet/OperatorBoxPresetSelect.test.ts src/components/editor2/operator/operatorDiscModel.test.ts src/pages/operator-recorder.test.ts`。人工验收：桌面和手机分别导入账号档案、选择第二套命盘、检查重复星石、撤销；套用超过五人的旧预设；确认旧地址无保存控件。浏览器验收需人工完成。
