@@ -9,6 +9,7 @@ interface OperationSearchInputProps {
   size: number
   onChange: (value: string) => void
   onBlur: () => void
+  onSubmit: () => void
   onShortCodeSelect: (shortCode: string) => void
 }
 
@@ -17,6 +18,7 @@ export const OperationSearchInput = ({
   size,
   onChange,
   onBlur,
+  onSubmit,
   onShortCodeSelect,
 }: OperationSearchInputProps) => {
   const t = useTranslation()
@@ -37,6 +39,16 @@ export const OperationSearchInput = ({
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
         onBlur={onBlur}
+        onKeyDown={(event) => {
+          if (
+            event.key === 'Enter' &&
+            !event.nativeEvent.isComposing &&
+            event.keyCode !== 229
+          ) {
+            event.preventDefault()
+            onSubmit()
+          }
+        }}
       />
       {shortCodeCandidate ? (
         <Button

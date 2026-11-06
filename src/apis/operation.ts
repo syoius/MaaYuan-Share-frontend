@@ -15,7 +15,7 @@ import { isHiddenInHotSort } from "../constants/hot-sort-blocklist";
 import { toCopilotOperation } from "models/converter";
 import { OpRatingType, Operation, OperationMetadata } from "models/operation";
 import { ShortCodeContent, parseShortCode } from "models/shortCode";
-import { OperationApi } from "utils/maa-copilot-client";
+import { OperationApi, readRawApiResponse } from "utils/maa-copilot-client";
 import { useSWRRefresh } from "utils/swr";
 
 export type OrderBy = "views" | "hot" | "id";
@@ -90,13 +90,6 @@ export function useOperations({
         }
       }
 
-      // 注意：去掉 satisfies 以便加入自定义扩展字段（如 tagsKey）
-      // SWR Key 中加入 tagsKey 以确保 tags 变化触发重新请求
-      const tagsKey = (Array.isArray(tags) ? tags : [])
-        .map((s) => (s || "").trim())
-        .filter(Boolean)
-        .join("|");
-
       return [
         "operations",
         {
@@ -112,15 +105,8 @@ export function useOperations({
           desc: descending,
           copilotIds: operationIds,
           uploaderId,
-          // 直接在 key 对象中携带 tags，方便 fetcher 透传给后端；
-          // SWR 的去重逻辑依然依赖 __tagsKey，避免大数组作为 key 影响性能
-          tags:
-            Array.isArray(tags) && tags.length
-              ? tags.map((s) => (s || "").trim()).filter(Boolean)
-              : undefined,
-          // 仅用于 SWR key 的稳定性，不会发送到后端
-          __tagsKey: tagsKey,
-        },
+          tags: tags?.map((tag) => tag.trim()).filter(Boolean),
+        } satisfies QueriesCopilotRequest,
       ];
     },
     async ([, req]) => {
@@ -132,23 +118,16 @@ export function useOperations({
 
       // 使用 Raw 接口拿到未加工 JSON，确保 metadata 不丢失
       const api = new OperationApi({ sendToken: "optional", requireData: true });
-      // 后端已确定新增 tags: string[] 且按 AND 筛选
-      // 由于生成的类型暂未包含 tags 字段，这里构造 payload 并以 any 透传
-      const payload_front: any = { ...req };
-      if ("__tagsKey" in payload_front) delete payload_front.__tagsKey;
-      if (Array.isArray(tags) && tags.length) {
-        payload_front.tags = tags;
-      }
-      const rawResponse = await api.queriesCopilotRaw(payload_front);
-      const rawJson = (await rawResponse.raw.json()) as {
+      const rawResponse = await api.queriesCopilotRaw(req);
+      const rawJson = await readRawApiResponse<{
         data?: {
           data?: any[];
           has_next?: boolean;
           page?: number;
           total?: number;
         };
-      };
-      const payload = rawJson?.data ?? { data: [], has_next: false, total: 0 };
+      }>(rawResponse.raw);
+      const payload = rawJson.data!;
 
       let parsedOperations: Operation[] = (payload.data ?? []).map((item) => {
         const baseInfo = CopilotInfoFromJSON(item);
@@ -219,7 +198,10 @@ export function useOperations({
   const operations = operationIds?.length
     ? operationIds?.map((id) => _operations?.find((v) => v.id === id)).filter((v) => !!v)
     : _operations;
-  const enableHotBlocklist = orderBy === "hot" && !operationIds?.length;
+  const enableHotBlocklist = orderBy === "hot" &&
+    !keyword?.trim() && !levelKeyword?.trim() && !uploaderId &&
+    !operationIds && !tags?.some((tag) => tag.trim()) &&
+    !operator?.included.length && !operator?.excluded.length;
   const filteredOperations = enableHotBlocklist
     ? operations.filter((op) => !isHiddenInHotSort(op))
     : operations;
@@ -261,7 +243,7 @@ export async function getOperation(req: { id: number }): Promise<Operation> {
     requireData: true,
   });
   const rawResponse = await api.getCopilotByIdRaw(req);
-  const rawJson = (await rawResponse.raw.json()) as { data?: any };
+  const rawJson = await readRawApiResponse<{ data?: any }>(rawResponse.raw);
   const payload = rawJson?.data ?? {};
   const baseInfo = CopilotInfoFromJSON(payload);
   // 基于后端返回的原始 metadata 构建前端使用的元数据

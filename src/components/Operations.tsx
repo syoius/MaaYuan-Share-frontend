@@ -149,11 +149,15 @@ export const Operations: ComponentType = withSuspensable(() => {
                 size={32}
                 onChange={handleSearchKeywordChange}
                 onBlur={() => debouncedSetQueryParams.flush()}
+                onSubmit={() => debouncedSetQueryParams.flush()}
                 onShortCodeSelect={handleShortCodeSelect}
               />
               <div className="flex flex-wrap gap-1 items-end w-full md:w-auto">
                 <LevelSelectButton
                   value={selectedStageId}
+                  keyword={
+                    selectedStageId ? undefined : queryParams.levelKeyword
+                  }
                   onChange={(stageId) => {
                     setSelectedStageId(stageId)
                     setQueryParams((old) => ({
@@ -164,7 +168,7 @@ export const Operations: ComponentType = withSuspensable(() => {
                     refreshOperations()
                   }}
                   onFilter={(kw) => {
-                    // 仅改变过滤关键字，不影响已选择的具体关卡展示
+                    setSelectedStageId('')
                     setQueryParams((old) => ({
                       ...old,
                       levelKeyword: kw,
@@ -303,6 +307,7 @@ export const Operations: ComponentType = withSuspensable(() => {
               size={64}
               onChange={handleSearchKeywordChange}
               onBlur={() => debouncedSetQueryParams.flush()}
+              onSubmit={() => debouncedSetQueryParams.flush()}
               onShortCodeSelect={handleShortCodeSelect}
             />
             <UserFilter

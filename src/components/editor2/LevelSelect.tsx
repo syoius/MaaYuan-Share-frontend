@@ -47,6 +47,8 @@ interface LevelSelectProps {
   onDifficultyChange?: (value: OpDifficulty, programmatically: boolean) => void
   // 当选择了“游戏”或“分类”时，上抛一个用于筛选的关键字
   onFilterChange?: (keyword: string, meta?: { catOne?: string }) => void
+  initialQuery?: string
+  onSearchQueryChange?: (query: string) => void
   defaultCategory?: string
   // 自定义 Portal 容器，确保下拉菜单渲染在 Overlay 容器内，避免被判定为“外部点击”
   portalContainer?: HTMLElement | undefined | null
@@ -68,6 +70,8 @@ export const LevelSelect: FC<LevelSelectProps> = ({
   fallbackLevel,
   onChange,
   onFilterChange,
+  initialQuery,
+  onSearchQueryChange,
   defaultCategory,
   portalContainer,
   rightExtra,
@@ -110,6 +114,10 @@ export const LevelSelect: FC<LevelSelectProps> = ({
         }
       },
     })
+  useEffect(() => {
+    if (initialQuery !== undefined) updateQuery(initialQuery, true)
+  }, [initialQuery, updateQuery])
+
   const [activeItem, setActiveItem] = useState<Level | 'createNewItem' | null>(
     null,
   )
@@ -469,7 +477,8 @@ export const LevelSelect: FC<LevelSelectProps> = ({
             }}
             popoverProps={{
               minimal: true,
-              captureDismiss: true,
+              captureDismiss: !onSearchQueryChange,
+              ...(onSearchQueryChange ? { placement: 'top-start' as const } : {}),
               portalContainer: portalContainer ?? undefined,
             }}
           />
@@ -486,12 +495,16 @@ export const LevelSelect: FC<LevelSelectProps> = ({
             }}
             resetOnQuery={false}
             query={query}
-            onQueryChange={(query) => updateQuery(query, false)}
+            onQueryChange={(query) => {
+              updateQuery(query, false)
+              onSearchQueryChange?.(query)
+            }}
             onReset={() => {
               clearedByUserRef.current = true
               setActiveItem(null)
               if (!disabled) {
                 onChange('')
+                onSearchQueryChange?.('')
               }
             }}
             disabled={disabled || isLoading}
@@ -542,13 +555,14 @@ export const LevelSelect: FC<LevelSelectProps> = ({
             }}
             popoverProps={{
               minimal: true,
-              captureDismiss: true,
+              captureDismiss: !onSearchQueryChange,
+              ...(onSearchQueryChange ? { placement: 'top-start' as const } : {}),
               portalContainer: portalContainer ?? undefined,
               onOpening() {
                 setSortNow(Date.now())
               },
               onClosed() {
-                updateQuery('', false)
+                if (!onSearchQueryChange) updateQuery('', false)
               },
             }}
           />

@@ -182,14 +182,7 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
         if (level && !isLevelWithinTimeRange(level)) return false
       }
 
-      if (!params.tags?.length) return true
-      const itemTags = Array.isArray(op.metadata?.tags)
-        ? (op.metadata?.tags as string[])
-        : []
-      const normalized = params.tags
-        .map((s) => (s || '').trim())
-        .filter(Boolean)
-      return normalized.every((t) => itemTags.includes(t))
+      return true
     })
 
     const matched = displayedOperations.length
@@ -236,7 +229,7 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
 
     useEffect(() => {
       const pageSize = params.limit ?? 50
-      if (!params.tags?.length && !shouldHideInactiveLevels && !operatorMatcher)
+      if (!shouldHideInactiveLevels && !operatorMatcher)
         return
       if (!pageSize || displayedOperations.length >= pageSize) return
       if (isReachingEnd || isValidating || error) return

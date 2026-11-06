@@ -1,75 +1,73 @@
-import { Button, Dialog, DialogBody, DialogFooter } from "@blueprintjs/core";
+import { Button, Dialog, DialogBody, DialogFooter } from '@blueprintjs/core'
 
-import { FC, useMemo, useState } from "react";
+import { FC, useState } from 'react'
 
-import { useLevels } from "../../apis/level";
-import { useTranslation } from "../../i18n/i18n";
-import { Level } from "../../models/operation";
-import { LevelSelect as LevelSelectV2 } from "./LevelSelect";
+import { useTranslation } from '../../i18n/i18n'
+import { LevelSelect as LevelSelectV2 } from './LevelSelect'
 
 interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-  value?: string;
-  onChange: (stageId: string) => void;
-  onFilter?: (keyword: string) => void;
+  isOpen: boolean
+  onClose: () => void
+  value?: string
+  keyword?: string
+  onChange: (stageId: string) => void
+  onFilter?: (keyword: string) => void
 }
 
-export const LevelSelectDialog: FC<Props> = ({ isOpen, onClose, value, onChange, onFilter }) => {
-  const t = useTranslation();
-  const { data: levels } = useLevels();
+export const LevelSelectDialog: FC<Props> = (props) =>
+  props.isOpen ? <LevelSearchDialog {...props} /> : null
 
-  const [pendingStageId, setPendingStageId] = useState<string | undefined>();
-  const [pendingKeyword, setPendingKeyword] = useState<string | undefined>();
-  const [lastFilterMeta, setLastFilterMeta] = useState<{
-    catOne?: string;
-  }>();
-
-  const selected = useMemo<Level | undefined>(() => {
-    if (!value) return undefined;
-    return levels.find((el) => el.stageId === value);
-  }, [levels, value]);
+const LevelSearchDialog: FC<Props> = ({
+  isOpen,
+  onClose,
+  value,
+  keyword,
+  onChange,
+  onFilter,
+}) => {
+  const t = useTranslation()
+  const [pendingStageId, setPendingStageId] = useState(value ?? '')
+  const [pendingKeyword, setPendingKeyword] = useState(
+    value ? '' : (keyword ?? ''),
+  )
 
   const submit = () => {
     if (pendingStageId) {
-      onChange(pendingStageId);
-    } else if (pendingKeyword || lastFilterMeta) {
-      const kw = (pendingKeyword ?? lastFilterMeta?.catOne ?? "").trim();
-      if (kw) {
-        onFilter?.(kw);
-      } else {
-        onChange("");
-      }
+      onChange(pendingStageId)
+    } else if (pendingKeyword.trim()) {
+      onFilter?.(pendingKeyword.trim())
     } else {
-      onChange("");
+      onChange('')
     }
-    onClose();
-  };
+    onClose()
+  }
 
   const resetAll = () => {
-    setPendingStageId(undefined);
-    setPendingKeyword(undefined);
-    setLastFilterMeta(undefined);
-    onFilter?.("");
-    onChange("");
-    onClose();
-  };
+    onChange('')
+    onClose()
+  }
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title={t.components.LevelSelect.level}>
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t.components.LevelSelect.level}
+    >
       <DialogBody>
         <LevelSelectV2
-          // 仅向选择器传递合法的 stageId，避免将筛选关键字当作“自定义关卡”
-          value={pendingStageId ?? selected?.stageId}
-          defaultCategory={lastFilterMeta?.catOne}
-          onChange={(stageId) => {
-            setPendingStageId(stageId);
-            setPendingKeyword(undefined);
+          value={pendingStageId}
+          initialQuery={value ? undefined : (keyword ?? '')}
+          onSearchQueryChange={(query) => {
+            setPendingKeyword(query)
+            setPendingStageId('')
           }}
-          onFilterChange={(kw, meta) => {
-            if (meta) setLastFilterMeta(meta);
-            setPendingKeyword(kw);
-            setPendingStageId(undefined);
+          onChange={(stageId) => {
+            setPendingStageId(stageId)
+            setPendingKeyword('')
+          }}
+          onFilterChange={(query) => {
+            setPendingKeyword(query)
+            setPendingStageId('')
           }}
         />
       </DialogBody>
@@ -89,7 +87,7 @@ export const LevelSelectDialog: FC<Props> = ({ isOpen, onClose, value, onChange,
         }
       />
     </Dialog>
-  );
-};
+  )
+}
 
-export default LevelSelectDialog;
+export default LevelSelectDialog

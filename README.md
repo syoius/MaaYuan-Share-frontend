@@ -140,3 +140,17 @@ VITE_YUANHUB_URL=http://127.0.0.1:61198
 Vite 仅在设置 `DEV_API_PROXY` 时代理 `/api` 并去掉该前缀。Share 后端开发配置中的 `yuanhub.matcher.base-url` 指向本机 YuanHub 后端（本机当前端口 61199，可用 YuanHub `./dev.sh --print-env` 查看）。生产默认域名不变。切换后端后重新登录本站，旧环境的登录凭据不通用。
 
 定向检查：`npx vitest run src/models/operatorMatcher.test.ts src/apis/yuanhub.test.ts src/store/operatorMatcher.test.ts src/components/OperatorMatcher.test.ts src/components/Operations.matcher.test.ts`。存储测试覆盖刷新恢复、本站账号隔离、按游戏账号保存不使用名单和清除行为。桌面/手机布局与本地交互可通过浏览器验证；真实 YuanHub 账号切换与通关效果仍需实机验收。
+
+## 搜索与筛选
+
+游戏标签通过 `tags` 重复查询参数发送，后端按 AND 条件过滤后分页；前端不再逐页下载后筛选标签。API 客户端尚未生成该字段时，由 `OperationApi.queriesCopilotRequestOpts` 补齐序列化。
+
+首页热度屏蔽表仅用于无搜索条件的热度浏览。关键词、神秘代码、关卡、作者、标签或密探筛选不受该表影响；神秘代码仍只按 ID 查询。
+
+关卡弹窗可直接输入文字后点击「搜索」，无需选中下拉项；选择候选关卡则按其 ID 精确筛选。取消不提交草稿，重新打开恢复当前条件；清空后搜索或点击「重置」清除关卡条件。作业集及关卡兜底搜索中的正则特殊字符按普通文字处理，需要同步更新后端。
+
+列表读取原始响应以保留元数据，但仍校验 HTTP 和业务状态；查询失败显示错误，不显示为正常的空结果。
+
+搜索回归：`yarn test src/apis/operation-search.test.ts src/components/editor2/LevelSelectDialog.test.ts`。
+
+搜索输入仍保留 500 毫秒防抖；按回车会立即提交当前关键词，不再等待剩余防抖时间。中文输入法确认候选时的回车不会触发提前提交。

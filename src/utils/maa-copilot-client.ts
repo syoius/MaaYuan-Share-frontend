@@ -13,6 +13,7 @@ import {
   OperatorDiscPresetApi as GeneratedOperatorDiscPresetApi,
   OperatorStarStonePresetApi as GeneratedOperatorStarStonePresetApi,
   OperatorTrainingConfigApi as GeneratedOperatorTrainingConfigApi,
+  QueriesCopilotRequest,
   querystring,
 } from "maa-copilot-client";
 import { SetRequired } from "type-fest";
@@ -23,6 +24,9 @@ import { TokenManager } from "utils/token-manager";
 import { i18n } from "../i18n/i18n";
 
 declare module "maa-copilot-client" {
+  interface QueriesCopilotRequest {
+    tags?: string[];
+  }
   interface Configuration {
     options?: ApiOptions;
   }
@@ -93,6 +97,13 @@ export class OperationApi<
 > extends (CopilotControllerApi as WithOptions<CopilotControllerApi>)<T> {
   constructor(options?: ValidateOptions<T>) {
     super(createConfiguration(options as T));
+  }
+
+  override queriesCopilotRequestOpts = async (request: QueriesCopilotRequest) => {
+    const options = await CopilotControllerApi.prototype.queriesCopilotRequestOpts.call(this, request);
+    const tags = [...new Set(request.tags?.map((tag) => tag.trim()).filter(Boolean))];
+    if (tags.length) options.query = { ...options.query, tags };
+    return options;
   }
 }
 export class OperationShareImageConfigApi<
@@ -249,11 +260,17 @@ JSONApiResponse.prototype.value = async function value() {
   const { config } = this.raw as ExtendedResponse;
   const result = await originalValueFunction.call(this);
 
-  if (!config?.options) {
-    return result;
-  }
+  return validateApiResult(result, config?.options);
+};
 
-  const { validateStatusCode, requireData } = config.options;
+export async function readRawApiResponse<T>(response: Response): Promise<T> {
+  const result = await response.json();
+  return validateApiResult(result, (response as ExtendedResponse).config?.options);
+}
+
+function validateApiResult(result: any, options?: ApiOptions) {
+  if (!options) return result;
+  const { validateStatusCode, requireData } = options;
 
   if (validateStatusCode === "always" || requireData) {
     if (!isObject(result)) {
@@ -263,7 +280,7 @@ JSONApiResponse.prototype.value = async function value() {
   }
 
   if (validateStatusCode === "always" || (validateStatusCode === "if-object" && isObject(result))) {
-    if (result.statusCode !== 200) {
+    if ((result.statusCode ?? result.status_code) !== 200) {
       console.error("response.statusCode is not 200", result);
       throw new ApiError(result.message || i18n.utils.maa_copilot_client.server_error);
     }
@@ -275,4 +292,4 @@ JSONApiResponse.prototype.value = async function value() {
   }
 
   return result;
-};
+}

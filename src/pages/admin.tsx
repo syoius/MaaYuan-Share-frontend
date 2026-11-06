@@ -125,6 +125,16 @@ export const AdminPage: ComponentType = withGlobalErrorBoundary(() => {
                   }))
                 }
                 onBlur={() => debouncedSetQueryParams.flush()}
+                onKeyDown={(event) => {
+                  if (
+                    event.key === 'Enter' &&
+                    !event.nativeEvent.isComposing &&
+                    event.keyCode !== 229
+                  ) {
+                    event.preventDefault()
+                    debouncedSetQueryParams.flush()
+                  }
+                }}
               />
               {isMD && (
                 <Button
@@ -142,6 +152,9 @@ export const AdminPage: ComponentType = withGlobalErrorBoundary(() => {
                 <div className="flex flex-wrap gap-1 items-end pt-2 sm:pt-0">
                   <LevelSelectButton
                     value={selectedStageId}
+                    keyword={
+                      selectedStageId ? undefined : queryParams.levelKeyword
+                    }
                     onChange={(stageId) => {
                       setSelectedStageId(stageId)
                       setQueryParams((old) => ({
@@ -151,6 +164,7 @@ export const AdminPage: ComponentType = withGlobalErrorBoundary(() => {
                       refreshOperations()
                     }}
                     onFilter={(kw) => {
+                      setSelectedStageId('')
                       setQueryParams((old) => ({ ...old, levelKeyword: kw }))
                       refreshOperations()
                     }}
