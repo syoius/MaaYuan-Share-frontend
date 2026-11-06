@@ -201,6 +201,15 @@ const changeInput = async (selector: string, value: string) => {
     input.dispatchEvent(new Event('input', { bubbles: true }))
   })
 }
+const viewMember = async (index: number) => {
+  await act(async () =>
+    document
+      .querySelector<HTMLButtonElement>(
+        `button[aria-label="查看${OPERATORS[index].name}"]`,
+      )!
+      .click(),
+  )
+}
 it('saves exactly five members with separate loadouts to the active account and reuses the cloud result', async () => {
   mocks.training.mockResolvedValue(fiveSnapshot())
   mocks.savePreset.mockImplementation(async (_owner, req) => ({
@@ -221,10 +230,12 @@ it('saves exactly five members with separate loadouts to the active account and 
         .click(),
     )
   }
-  expect(document.querySelectorAll('.yuanhub-member-card')).toHaveLength(5)
+  expect(document.querySelectorAll('.yuanhub-member-select')).toHaveLength(5)
+  expect(document.querySelectorAll('.yuanhub-member-card')).toHaveLength(1)
   expect(
     document.querySelectorAll('.yuanhub-member-card input[type="radio"]'),
-  ).toHaveLength(10)
+  ).toHaveLength(2)
+  await viewMember(0)
   expect(document.body.textContent).not.toContain('命盘3')
   await act(async () =>
     document
@@ -293,8 +304,13 @@ it.each([
         document.querySelector('.yuanhub-missing-attributes')?.textContent,
       ).toContain('5 名成员')
     }
-    const members = document.querySelector('.yuanhub-team-members')!
-    expect(members.querySelectorAll('details')).toHaveLength(5)
+    const members = document.querySelector('.yuanhub-member-detail')!
+    expect(members.querySelectorAll('details')).toHaveLength(1)
+    expect(
+      Array.from(document.querySelectorAll('.yuanhub-roster-status')).every(
+        (status) => status.textContent === (missing ? '待补填' : '已读取'),
+      ),
+    ).toBe(true)
     expect(
       Array.from(members.querySelectorAll('summary')).every(
         (summary) => summary.textContent === '星石与导入详情',
@@ -377,7 +393,7 @@ it('shows cloud errors without falling back to manual import and supports retry'
   expect(document.body.textContent).not.toContain('尚未部署')
 })
 
-it('shows missing training and real star slots without fabricated values, and removes a card', async () => {
+it('shows missing training and real star slots, and selects the next member after removal', async () => {
   const training = fiveSnapshot()
   mocks.training.mockResolvedValue({
     ...training,
@@ -422,7 +438,7 @@ it('shows missing training and real star slots without fabricated values, and re
         ],
       ),
     ),
-  ).toEqual({ 等级: '100', 修为: '17', 攻击: '未知', 生命: '0' })
+  ).toEqual({ 等级: '100', 修为: '17', 攻击: '待补填', 生命: '0' })
   expect(
     Array.from(
       card.querySelectorAll<HTMLInputElement>('input[type="radio"]'),
@@ -438,7 +454,10 @@ it('shows missing training and real star slots without fabricated values, and re
       )!
       .click(),
   )
-  expect(document.querySelectorAll('.yuanhub-member-card')).toHaveLength(4)
+  expect(document.querySelectorAll('.yuanhub-member-select')).toHaveLength(4)
+  expect(
+    document.querySelector('.yuanhub-member-card')?.getAttribute('aria-label'),
+  ).toBe(OPERATORS[1].name)
   expect(button('保存预设').disabled).toBe(true)
   expect(document.body.textContent).toContain('还需添加 1 位密探')
   await act(async () => button('添加密探').click())
@@ -457,16 +476,16 @@ it('keeps connection and preset controls in one body with a separate footer and 
   expect(body.querySelector('select[id$="-account"]')).not.toBeNull()
   expect(body.querySelector('select[id$="-preset"]')).not.toBeNull()
   expect(body.querySelector('.matcher-footer')).toBeNull()
-  expect(body.querySelectorAll('input[type="radio"]')).toHaveLength(10)
+  expect(body.querySelectorAll('input[type="radio"]')).toHaveLength(2)
   expect(button('编辑阵容与命盘')).toBeUndefined()
   expect(
     body.querySelectorAll('details:not([open]) .yuanhub-member-stones'),
-  ).toHaveLength(5)
+  ).toHaveLength(1)
   expect(body.textContent).not.toContain('导入方式')
   expect(body.querySelector('select[id$="-mode"]')).toBeNull()
   expect(document.querySelectorAll('.bp4-dialog-body')).toHaveLength(1)
   expect(document.querySelector('select[id$="-account"]')).not.toBeNull()
-  expect(document.querySelectorAll('input[type="radio"]')).toHaveLength(10)
+  expect(document.querySelectorAll('input[type="radio"]')).toHaveLength(2)
 })
 it('explains capacity and invalid loadout blockers next to the apply button', async () => {
   mocks.training.mockResolvedValue(fiveSnapshot())
@@ -505,9 +524,10 @@ it('uses catalog colors for both loadouts and marks only the imported scheme', a
   mocks.training.mockResolvedValue(training)
   mocks.presets.mockResolvedValue([preset])
   await open()
-  const cards = document.querySelectorAll('.yuanhub-member-card')
   for (const [index, op] of training.operators.entries()) {
-    const rows = cards[index].querySelectorAll('.yuanhub-loadout-option')
+    await viewMember(index)
+    const card = document.querySelector('.yuanhub-member-card')!
+    const rows = card.querySelectorAll('.yuanhub-loadout-option')
     expect(rows).toHaveLength(2)
     for (const [loadoutIndex, loadout] of op.loadouts.entries()) {
       const chips = rows[loadoutIndex].querySelectorAll('.yuanhub-disc-effect')
@@ -524,10 +544,15 @@ it('uses catalog colors for both loadouts and marks only the imported scheme', a
       )
     }
   }
-  expect(cards[1].querySelectorAll('.yuanhub-loadout-selected')).toHaveLength(0)
-  expect(cards[1].querySelectorAll('.yuanhub-loadout-empty')).toHaveLength(2)
-  expect(cards[1].textContent).toContain('未选择命盘')
-  expect(cards[1].textContent).toContain('暂无方案')
+  await viewMember(1)
+  const emptyCard = document.querySelector('.yuanhub-member-card')!
+  expect(emptyCard.querySelectorAll('.yuanhub-loadout-selected')).toHaveLength(
+    0,
+  )
+  expect(emptyCard.querySelectorAll('.yuanhub-loadout-empty')).toHaveLength(2)
+  expect(emptyCard.textContent).toContain('未选择命盘')
+  expect(emptyCard.textContent).toContain('暂无方案')
+  await viewMember(0)
   expect(
     document.querySelectorAll(
       '.yuanhub-loadout-option .yuanhub-disc-effect[data-color]',
@@ -638,6 +663,7 @@ it('replaces a member in place and saves a copy without the original id or versi
     version: 0,
   }))
   await open()
+  await viewMember(1)
   await act(async () =>
     document
       .querySelector<HTMLButtonElement>(
@@ -645,7 +671,8 @@ it('replaces a member in place and saves a copy without the original id or versi
       )!
       .click(),
   )
-  expect(document.querySelectorAll('.yuanhub-member-card')).toHaveLength(5)
+  expect(document.querySelectorAll('.yuanhub-member-select')).toHaveLength(5)
+  expect(document.querySelectorAll('.yuanhub-member-card')).toHaveLength(1)
   await act(async () =>
     document
       .querySelector<HTMLButtonElement>(
@@ -655,8 +682,11 @@ it('replaces a member in place and saves a copy without the original id or versi
   )
   expect(
     document
-      .querySelectorAll('.yuanhub-member-card')[1]
+      .querySelectorAll('.yuanhub-member-select')[1]
       .getAttribute('aria-label'),
+  ).toBe(`查看${OPERATORS[5].name}`)
+  expect(
+    document.querySelector('.yuanhub-member-card')?.getAttribute('aria-label'),
   ).toBe(OPERATORS[5].name)
   await act(async () => button('另存为新预设').click())
   const request = mocks.savePreset.mock.calls[0][1]
@@ -723,4 +753,106 @@ it('blocks closing and account changes while a cloud save is pending', async () 
   )
   expect(button('取消').disabled).toBe(false)
   expect(document.body.textContent).toContain('预设已保存到云端')
+})
+
+it('switches member details without losing either member’s unsaved loadout or changing the saved preset', async () => {
+  mocks.training.mockResolvedValue(fiveSnapshot())
+  mocks.presets.mockResolvedValue([savedPreset()])
+  const apply = await open()
+  await selectFirstLoadout()
+  await viewMember(1)
+  expect(document.querySelectorAll('.yuanhub-member-card')).toHaveLength(1)
+  expect(
+    document.querySelector('.yuanhub-member-card')?.getAttribute('aria-label'),
+  ).toBe(OPERATORS[1].name)
+  await act(async () =>
+    document
+      .querySelector<HTMLInputElement>(
+        `input[aria-label="${OPERATORS[1].name}的命盘1"]`,
+      )!
+      .click(),
+  )
+  await viewMember(0)
+  expect(
+    document.querySelector<HTMLInputElement>(
+      `input[aria-label="${OPERATORS[0].name}的命盘1"]`,
+    )!.checked,
+  ).toBe(true)
+  const selected = document.querySelector(
+    '.yuanhub-member-select[aria-pressed="true"]',
+  )!
+  expect(selected.getAttribute('aria-label')).toBe(`查看${OPERATORS[0].name}`)
+  expect(
+    document
+      .getElementById(selected.getAttribute('aria-controls')!)
+      ?.contains(document.querySelector('.yuanhub-member-card')),
+  ).toBe(true)
+  await act(async () => button('应用到当前作业').click())
+  expect(
+    apply.mock.calls[0][0]
+      .slice(0, 2)
+      .map((op: { discsSelected: number[] }) => op.discsSelected),
+  ).toEqual([
+    [1, 0, 0],
+    [1, 0, 0],
+  ])
+  expect(mocks.savePreset).not.toHaveBeenCalled()
+  expect(window.confirm).not.toHaveBeenCalled()
+})
+
+it('marks an invalid hidden member and allows fixing it from the roster', async () => {
+  mocks.training.mockResolvedValue(fiveSnapshot())
+  const preset = savedPreset()
+  preset.members[3].loadoutId = 'deleted'
+  mocks.presets.mockResolvedValue([preset])
+  await open()
+  expect(
+    document.querySelectorAll('.yuanhub-member-select')[3].textContent,
+  ).toContain('需修复')
+  expect(button('应用到当前作业').disabled).toBe(true)
+  await viewMember(3)
+  expect(
+    document.querySelector('.yuanhub-member-issue')?.textContent,
+  ).toContain('原命盘方案已不存在')
+  await act(async () =>
+    document
+      .querySelector<HTMLInputElement>(
+        `input[aria-label="${OPERATORS[3].name}的命盘1"]`,
+      )!
+      .click(),
+  )
+  expect(
+    document.querySelectorAll('.yuanhub-member-select')[3].textContent,
+  ).not.toContain('需修复')
+  expect(button('应用到当前作业').disabled).toBe(false)
+})
+
+it('handles removal of the last member and an empty roster without leaving stale details', async () => {
+  mocks.training.mockResolvedValue(fiveSnapshot())
+  mocks.presets.mockResolvedValue([savedPreset()])
+  await open()
+  await viewMember(4)
+  for (let index = 4; index >= 0; index--) {
+    expect(
+      document
+        .querySelector('.yuanhub-member-card')
+        ?.getAttribute('aria-label'),
+    ).toBe(OPERATORS[index].name)
+    await act(async () => button('移出阵容').click())
+  }
+  expect(document.querySelector('.yuanhub-member-card')).toBeNull()
+  expect(document.querySelectorAll('.yuanhub-member-select')).toHaveLength(0)
+  expect(document.body.textContent).toContain('暂无成员，请添加密探')
+  expect(button('应用到当前作业').disabled).toBe(true)
+  await act(async () => button('添加密探').click())
+  await act(async () =>
+    document
+      .querySelector<HTMLButtonElement>(
+        `button[aria-label="添加${OPERATORS[2].name}"]`,
+      )!
+      .click(),
+  )
+  expect(
+    document.querySelector('.yuanhub-member-card')?.getAttribute('aria-label'),
+  ).toBe(OPERATORS[2].name)
 })

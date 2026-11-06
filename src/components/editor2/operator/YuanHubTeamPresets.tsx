@@ -49,6 +49,7 @@ export function YuanHubTeamPresets({
   const id = useId()
   const [presets, setPresets] = useState<YuanHubTeamPreset[]>([])
   const [selectedId, setSelectedId] = useState('')
+  const [selectedMemberId, setSelectedMemberId] = useState('')
   const [creating, setCreating] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [picker, setPicker] = useState<string | null>(null)
@@ -78,6 +79,7 @@ export function YuanHubTeamPresets({
     !busy && (!dirty || window.confirm('放弃尚未保存的阵容修改？'))
   const resetDraft = (preset?: YuanHubTeamPreset) => {
     setSelectedId(preset?.id ?? '')
+    setSelectedMemberId(preset?.members[0]?.operatorId ?? '')
     setLabel(preset?.label ?? '')
     setMembers(preset?.members.map((m) => ({ ...m })) ?? [])
     setCreating(!preset)
@@ -132,24 +134,26 @@ export function YuanHubTeamPresets({
       member,
       entry,
       candidate,
+      missingAttributes:
+        !!candidate?.operator &&
+        [
+          candidate.operator.requirements?.level,
+          candidate.operator.requirements?.elite,
+          candidate.operator.starLevel,
+          candidate.operator.attack,
+          candidate.operator.hp,
+        ].some((value) => value === undefined),
       issue:
         issue ?? (!candidate?.operator ? '本站目录无法识别此密探' : undefined),
     }
   })
   const invalid = candidates.some((c) => c.issue)
-  const missingAttributeCount = candidates.filter(({ candidate }) => {
-    const operator = candidate?.operator
-    return (
-      operator &&
-      [
-        operator.requirements?.level,
-        operator.requirements?.elite,
-        operator.starLevel,
-        operator.attack,
-        operator.hp,
-      ].some((value) => value === undefined)
-    )
-  }).length
+  const missingAttributeCount = candidates.filter(
+    (c) => c.missingAttributes,
+  ).length
+  const selectedMember =
+    candidates.find((c) => c.member.operatorId === selectedMemberId) ??
+    candidates[0]
   const save = async (asNew = false) => {
     if (members.length !== 5 || invalid || !label.trim() || busy) return
     const controller = new AbortController()
@@ -204,7 +208,7 @@ export function YuanHubTeamPresets({
     : members.length !== 5
       ? `还需添加 ${5 - members.length} 位密探才能应用。`
       : invalidMember
-        ? `${invalidMember.candidate?.label ?? invalidMember.member.operatorId}：${invalidMember.issue}。请在卡片中修复。`
+        ? `${invalidMember.candidate?.label ?? invalidMember.member.operatorId}：${invalidMember.issue}。请选择该成员修复。`
         : applyError
   const apply = () => {
     if (members.length !== 5 || invalid || busy) return
@@ -320,121 +324,6 @@ export function YuanHubTeamPresets({
         )}
         {active && (
           <>
-            <div className="matcher-label-row yuanhub-members-toolbar">
-              <strong>
-                阵容成员 <span aria-live="polite">{members.length} / 5</span>
-              </strong>
-              <span className="matcher-help">可直接替换成员、切换命盘</span>
-              <Button
-                outlined
-                icon="plus"
-                className="matcher-secondary"
-                disabled={busy || members.length >= 5}
-                onClick={() => setPicker('')}
-              >
-                添加密探
-              </Button>
-              {members.length === 5 && (
-                <span className="matcher-help">已满员</span>
-              )}
-            </div>
-            {missingAttributeCount > 0 && (
-              <p className="yuanhub-missing-attributes" role="status">
-                {missingAttributeCount}{' '}
-                名成员属性未知或超出支持范围，应用后需补填。
-              </p>
-            )}
-            <ul className="yuanhub-team-members">
-              {candidates.map(({ member, entry, candidate, issue }) => (
-                <YuanHubMemberCard
-                  key={member.operatorId}
-                  member={member}
-                  entry={entry}
-                  candidate={candidate}
-                  issue={issue}
-                  busy={busy}
-                  onSelect={(loadoutId) =>
-                    setMembers((old) =>
-                      old.map((m) =>
-                        m.operatorId === member.operatorId
-                          ? { ...m, loadoutId }
-                          : m,
-                      ),
-                    )
-                  }
-                  onReplace={() => {
-                    setQuery('')
-                    setPicker(member.operatorId)
-                  }}
-                  onRemove={() => {
-                    setMembers((old) =>
-                      old.filter((m) => m.operatorId !== member.operatorId),
-                    )
-                    setPicker(null)
-                  }}
-                />
-              ))}
-            </ul>
-            {picker !== null && (
-              <section className="yuanhub-picker-section" aria-label="选择密探">
-                <div className="matcher-label-row">
-                  <label htmlFor={`${id}-search`}>
-                    {picker
-                      ? `替换${findOperatorById(picker)?.name ?? picker}`
-                      : '添加密探'}
-                  </label>
-                  <Button minimal onClick={() => setPicker(null)}>
-                    取消选择
-                  </Button>
-                </div>
-                <InputGroup
-                  id={`${id}-search`}
-                  leftIcon="search"
-                  placeholder="搜索密探名称"
-                  value={query}
-                  disabled={busy}
-                  onChange={(e) => setQuery(e.currentTarget.value)}
-                />
-                <ul className="yuanhub-team-picker">
-                  {available.map((op) => (
-                    <li key={op.id}>
-                      <Button
-                        outlined
-                        className="matcher-secondary"
-                        disabled={busy || (!picker && members.length >= 5)}
-                        aria-label={`添加${findOperatorById(op.id)!.name}`}
-                        onClick={() => {
-                          const member = {
-                            operatorId: op.id,
-                            loadoutId: op.loadouts[0]?.id ?? null,
-                          }
-                          setMembers((old) =>
-                            old.some((m) => m.operatorId === op.id)
-                              ? old
-                              : picker
-                                ? old.map((m) =>
-                                    m.operatorId === picker ? member : m,
-                                  )
-                                : old.length < 5
-                                  ? [...old, member]
-                                  : old,
-                          )
-                          if (picker || members.length === 4) setPicker(null)
-                        }}
-                      >
-                        <span className="flex items-center gap-2">
-                          <OperatorAvatar id={op.id} size="large" />
-                          {findOperatorById(op.id)!.name}
-                        </span>
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-                {!available.length && (
-                  <p className="matcher-help">没有可添加的密探。</p>
-                )}
-              </section>
-            )}
             <div className="matcher-label-row yuanhub-draft-actions">
               <div className="flex items-center gap-2">
                 <span className="matcher-help" role="status">
@@ -480,6 +369,203 @@ export function YuanHubTeamPresets({
                   保存预设
                 </Button>
               </div>
+            </div>
+            {missingAttributeCount > 0 && (
+              <p className="yuanhub-missing-attributes" role="status">
+                {missingAttributeCount}{' '}
+                名成员属性未知或超出支持范围，应用后需补填。
+              </p>
+            )}
+            <div className="yuanhub-member-workspace">
+              <section className="yuanhub-member-roster" aria-label="阵容成员">
+                <h3 className="yuanhub-members-heading">
+                  阵容成员 <span aria-live="polite">{members.length} / 5</span>
+                </h3>
+                <ul className="yuanhub-team-members">
+                  {candidates.map(
+                    ({ member, candidate, issue, missingAttributes }) => {
+                      const name = candidate?.label ?? member.operatorId
+                      const operator = candidate?.operator
+                      return (
+                        <li key={member.operatorId}>
+                          <button
+                            type="button"
+                            className="yuanhub-member-select"
+                            aria-label={`查看${name}`}
+                            aria-pressed={
+                              selectedMember?.member.operatorId ===
+                              member.operatorId
+                            }
+                            aria-controls={`${id}-member-detail`}
+                            disabled={busy}
+                            onClick={() => {
+                              setSelectedMemberId(member.operatorId)
+                              setPicker(null)
+                            }}
+                          >
+                            <OperatorAvatar
+                              id={member.operatorId}
+                              size="large"
+                            />
+                            <span className="yuanhub-roster-identity">
+                              <strong>{name}</strong>
+                              <span>
+                                等级 {operator?.requirements?.level ?? '未知'} ·
+                                修为 {operator?.requirements?.elite ?? '未知'}
+                              </span>
+                            </span>
+                            <span
+                              className="yuanhub-roster-status"
+                              data-state={
+                                issue
+                                  ? 'invalid'
+                                  : missingAttributes
+                                    ? 'missing'
+                                    : 'ready'
+                              }
+                            >
+                              {issue
+                                ? '需修复'
+                                : missingAttributes
+                                  ? '待补填'
+                                  : '已读取'}
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    },
+                  )}
+                </ul>
+                {!members.length && (
+                  <p className="matcher-help">暂无成员，请添加密探。</p>
+                )}
+                <div className="matcher-label-row yuanhub-members-toolbar">
+                  <Button
+                    outlined
+                    icon="plus"
+                    className="matcher-secondary"
+                    disabled={busy || members.length >= 5}
+                    onClick={() => {
+                      setQuery('')
+                      setPicker('')
+                    }}
+                  >
+                    添加密探
+                  </Button>
+                  {members.length === 5 && (
+                    <span className="matcher-help">已满员</span>
+                  )}
+                </div>
+              </section>
+              <section
+                id={`${id}-member-detail`}
+                className="yuanhub-member-detail"
+                aria-label="当前成员详情"
+              >
+                {selectedMember && (
+                  <YuanHubMemberCard
+                    key={selectedMember.member.operatorId}
+                    {...selectedMember}
+                    busy={busy}
+                    onSelect={(loadoutId) =>
+                      setMembers((old) =>
+                        old.map((m) =>
+                          m.operatorId === selectedMember.member.operatorId
+                            ? { ...m, loadoutId }
+                            : m,
+                        ),
+                      )
+                    }
+                    onReplace={() => {
+                      setQuery('')
+                      setPicker(selectedMember.member.operatorId)
+                    }}
+                    onRemove={() => {
+                      const index = members.findIndex(
+                        (m) =>
+                          m.operatorId === selectedMember.member.operatorId,
+                      )
+                      setSelectedMemberId(
+                        members[index + 1]?.operatorId ??
+                          members[index - 1]?.operatorId ??
+                          '',
+                      )
+                      setMembers((old) =>
+                        old.filter(
+                          (m) =>
+                            m.operatorId !== selectedMember.member.operatorId,
+                        ),
+                      )
+                      setPicker(null)
+                    }}
+                  />
+                )}
+                {picker !== null && (
+                  <section
+                    className="yuanhub-picker-section"
+                    aria-label="选择密探"
+                  >
+                    <div className="matcher-label-row">
+                      <label htmlFor={`${id}-search`}>
+                        {picker
+                          ? `替换${findOperatorById(picker)?.name ?? picker}`
+                          : '添加密探'}
+                      </label>
+                      <Button minimal onClick={() => setPicker(null)}>
+                        取消选择
+                      </Button>
+                    </div>
+                    <InputGroup
+                      id={`${id}-search`}
+                      leftIcon="search"
+                      placeholder="搜索密探名称"
+                      value={query}
+                      disabled={busy}
+                      onChange={(e) => setQuery(e.currentTarget.value)}
+                    />
+                    <ul className="yuanhub-team-picker">
+                      {available.map((op) => (
+                        <li key={op.id}>
+                          <Button
+                            outlined
+                            className="matcher-secondary"
+                            disabled={busy || (!picker && members.length >= 5)}
+                            aria-label={`添加${findOperatorById(op.id)!.name}`}
+                            onClick={() => {
+                              const member = {
+                                operatorId: op.id,
+                                loadoutId: op.loadouts[0]?.id ?? null,
+                              }
+                              setMembers((old) =>
+                                old.some((m) => m.operatorId === op.id)
+                                  ? old
+                                  : picker
+                                    ? old.map((m) =>
+                                        m.operatorId === picker ? member : m,
+                                      )
+                                    : old.length < 5
+                                      ? [...old, member]
+                                      : old,
+                              )
+                              setSelectedMemberId(op.id)
+                              if (picker || members.length === 4)
+                                setPicker(null)
+                            }}
+                          >
+                            <span className="flex items-center gap-2">
+                              <OperatorAvatar id={op.id} size="large" />
+                              {findOperatorById(op.id)!.name}
+                            </span>
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                    {!available.length && (
+                      <p className="matcher-help">没有可添加的密探。</p>
+                    )}
+                  </section>
+                )}
+              </section>
             </div>
             {(!label.trim() || members.length !== 5) && (
               <p className="matcher-help" aria-live="polite">

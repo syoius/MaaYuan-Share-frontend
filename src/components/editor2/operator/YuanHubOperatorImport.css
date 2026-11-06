@@ -1,5 +1,5 @@
 body .bp4-dialog.yuanhub-import-dialog {
-  width: min(1600px, calc(100vw - 32px));
+  width: min(960px, calc(100vw - 32px));
   overflow: hidden;
 }
 .yuanhub-import-dialog .bp4-dialog-header {
@@ -9,6 +9,7 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body {
   min-height: 0;
   max-height: none;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
   gap: 12px;
 }
@@ -22,10 +23,8 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
 .yuanhub-connection-status {
   color: var(--matcher-text);
   font-size: 13px;
-  padding: 6px 12px;
-  border: 1px solid var(--matcher-border);
-  border-radius: 6px;
-  background: var(--matcher-button-surface);
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--matcher-border);
 }
 .yuanhub-account-field > label {
   display: block;
@@ -51,10 +50,10 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
 }
 .yuanhub-import-dialog .yuanhub-members-toolbar {
   justify-content: flex-start;
-  margin: 4px 0;
+  margin: 12px 0 0;
 }
 .yuanhub-members-toolbar > .bp4-button {
-  margin-left: auto;
+  flex: 1;
 }
 .yuanhub-import-dialog .yuanhub-missing-attributes {
   margin: 0;
@@ -63,7 +62,7 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
   border-radius: 6px;
   background: var(--matcher-button-surface);
   color: var(--matcher-accent);
-  font-size: 12px;
+  font-size: 13px;
 }
 .yuanhub-team-section {
   border-top: 1px solid var(--matcher-border);
@@ -76,15 +75,82 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
   padding: 0;
 }
 
-.yuanhub-team-members {
+.yuanhub-member-workspace {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
 }
-.yuanhub-star-slots {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.yuanhub-member-roster,
+.yuanhub-member-detail {
+  min-width: 0;
 }
-@media (min-width: 900px) {
+.yuanhub-member-detail {
+  border-left: 1px solid var(--matcher-border);
+  padding-left: 24px;
+}
+.yuanhub-members-heading {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.yuanhub-team-members > li + li {
+  border-top: 1px solid var(--matcher-border);
+}
+.yuanhub-member-select {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--matcher-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.yuanhub-member-select > img {
+  flex-shrink: 0;
+}
+.yuanhub-member-select:hover:not(:disabled) {
+  background: var(--matcher-button-hover);
+}
+.yuanhub-member-select[aria-pressed='true'] {
+  background: var(--matcher-button-surface);
+  border-color: var(--matcher-accent);
+}
+.yuanhub-member-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.yuanhub-roster-identity {
+  flex: 1;
+  min-width: 0;
+}
+.yuanhub-roster-identity > strong,
+.yuanhub-roster-identity > span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.yuanhub-roster-identity > span,
+.yuanhub-roster-status {
+  font-size: 12px;
+  color: var(--matcher-muted);
+}
+.yuanhub-roster-status {
+  flex-shrink: 0;
+}
+.yuanhub-roster-status[data-state='missing'],
+.yuanhub-member-stats dd[data-missing='true'] {
+  color: var(--matcher-accent);
+}
+.yuanhub-roster-status[data-state='invalid'] {
+  color: var(--matcher-danger);
+}
+@media (min-width: 760px) {
   body .bp4-dialog.yuanhub-import-dialog .yuanhub-team-body {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -108,23 +174,9 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
     border-left: 1px solid var(--matcher-border);
     padding: 0 0 0 16px;
   }
-  .yuanhub-team-members {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-@media (min-width: 1400px) {
-  .yuanhub-team-members {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
 }
 .yuanhub-member-card {
-  display: flex;
-  flex-direction: column;
   min-width: 0;
-  padding: 12px;
-  border: 1px solid var(--matcher-border);
-  border-radius: 10px;
-  background: var(--matcher-surface);
 }
 .yuanhub-member-header {
   display: flex;
@@ -152,36 +204,24 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
 }
 .yuanhub-member-stats {
   display: grid;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  gap: 8px;
-  margin-bottom: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 8px 0 16px;
+  border-bottom: 1px solid var(--matcher-border);
 }
 .yuanhub-member-stats dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   min-width: 0;
   margin: 0;
-}
-.yuanhub-member-training {
-  padding-right: 8px;
-  border-right: 1px solid var(--matcher-border);
-}
-.yuanhub-member-panel {
-  border: 1px solid var(--matcher-border);
-  border-radius: 6px;
-  background: var(--matcher-button-surface);
 }
 .yuanhub-member-stats dl > div {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 2px 6px;
-  padding: 4px 0;
-}
-.yuanhub-member-panel > div {
-  margin: 0 6px;
-}
-.yuanhub-member-panel > div + div {
-  border-top: 1px solid var(--matcher-border);
+  gap: 4px 8px;
 }
 .yuanhub-member-stats dt {
   color: var(--matcher-muted);
@@ -194,24 +234,36 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
   overflow-wrap: anywhere;
 }
 .yuanhub-member-loadouts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
 }
-.yuanhub-member-loadouts legend {
+.yuanhub-loadout-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 8px;
+}
+.yuanhub-loadout-heading h3 {
+  margin: 0;
+  font-size: 16px;
   font-weight: 600;
 }
 .yuanhub-loadout-option {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  align-items: baseline;
-  gap: 6px;
-  padding: 8px;
-  margin-bottom: 8px;
+  align-content: start;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
   border: 1px solid var(--matcher-border);
-  min-height: 88px;
+  min-height: 116px;
   border-radius: 6px;
   cursor: pointer;
 }
@@ -301,11 +353,13 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
   font-weight: 500;
 }
 .yuanhub-member-details {
-  margin-top: auto;
-  font-size: 12px;
+  margin-top: 16px;
+  font-size: 13px;
 }
 .yuanhub-member-details summary {
-  padding: 6px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--matcher-border);
+  border-radius: 6px;
   cursor: pointer;
   color: var(--matcher-muted);
 }
@@ -336,13 +390,39 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
   width: 100%;
   justify-content: flex-start;
 }
-@media (max-width: 640px) {
-  .yuanhub-team-members {
+@media (max-width: 759px) {
+  .yuanhub-member-workspace {
     grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .yuanhub-member-detail {
+    padding: 16px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--matcher-border);
+  }
+  .yuanhub-team-members {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .yuanhub-team-members > li + li {
+    border-top: 0;
   }
   .yuanhub-import-dialog .matcher-footer .matcher-actions {
     width: 100%;
     justify-content: flex-end;
+  }
+}
+@media (max-width: 480px) {
+  .yuanhub-team-members,
+  .yuanhub-member-loadouts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .yuanhub-member-stats dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .yuanhub-member-actions {
+    flex-basis: 100%;
   }
 }
 
@@ -352,7 +432,7 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
   color: var(--matcher-danger);
 }
 .yuanhub-loadout-selected {
-  font-size: 10px;
+  font-size: 12px;
 }
 .yuanhub-loadout-empty {
   padding: 2px 8px;
@@ -363,7 +443,7 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
 }
 
 .yuanhub-loadout-option .yuanhub-loadout-effects {
-  grid-column: 2 / -1;
+  grid-column: 1 / -1;
 }
 .yuanhub-loadout-selected {
   color: var(--matcher-accent);
@@ -377,9 +457,6 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
   flex-wrap: wrap;
   gap: 6px;
 }
-.yuanhub-loadout-clear-row {
-  min-height: 36px;
-}
 .yuanhub-preset-name,
 .yuanhub-picker-section {
   display: grid;
@@ -387,9 +464,9 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
   margin-top: 12px;
 }
 .yuanhub-draft-actions {
-  border-top: 1px solid var(--matcher-border);
-  padding-top: 12px;
+  border-block: 1px solid var(--matcher-border);
+  padding: 8px 0;
 }
-.yuanhub-import-dialog .yuanhub-missing-attributes {
-  justify-self: start;
+.yuanhub-draft-actions .matcher-actions {
+  flex-wrap: wrap;
 }

@@ -47,7 +47,7 @@ export function YuanHubMemberCard({
     })
   const stars = operator?.starLevel
   return (
-    <li className="yuanhub-member-card" aria-label={name}>
+    <article className="yuanhub-member-card" aria-label={name}>
       <div className="yuanhub-member-header">
         <OperatorAvatar id={member.operatorId} size="verylarge" />
         <div className="yuanhub-member-identity">
@@ -61,21 +61,22 @@ export function YuanHubMemberCard({
         </div>
         <div className="yuanhub-member-actions">
           <Button
-            minimal
-            small
+            outlined
+            className="matcher-secondary"
             disabled={busy}
             aria-label={`替换${name}`}
             onClick={onReplace}
           >
-            替换
+            替换成员
           </Button>
           <Button
             minimal
-            icon="cross"
             aria-label={`移除${name}`}
             disabled={busy}
             onClick={onRemove}
-          />
+          >
+            移出阵容
+          </Button>
         </div>
       </div>
       <div className="yuanhub-member-stats">
@@ -92,16 +93,39 @@ export function YuanHubMemberCard({
         <dl className="yuanhub-member-panel">
           <div>
             <dt>攻击</dt>
-            <dd>{operator?.attack ?? '未知'}</dd>
+            <dd data-missing={operator?.attack === undefined}>
+              {operator?.attack ?? '待补填'}
+            </dd>
           </div>
           <div>
             <dt>生命</dt>
-            <dd>{operator?.hp ?? '未知'}</dd>
+            <dd data-missing={operator?.hp === undefined}>
+              {operator?.hp ?? '待补填'}
+            </dd>
           </div>
         </dl>
       </div>
-      <fieldset className="yuanhub-member-loadouts" disabled={busy}>
-        <legend>命盘方案</legend>
+      <div className="yuanhub-loadout-heading">
+        <h3 id={`${id}-loadouts`}>命盘方案</h3>
+        {member.loadoutId !== null ? (
+          <Button
+            minimal
+            small
+            className="yuanhub-clear-loadout"
+            disabled={busy}
+            onClick={() => onSelect(null)}
+          >
+            清除命盘选择
+          </Button>
+        ) : (
+          <span className="matcher-help">未选择命盘</span>
+        )}
+      </div>
+      <fieldset
+        className="yuanhub-member-loadouts"
+        disabled={busy}
+        aria-labelledby={`${id}-loadouts`}
+      >
         {[0, 1].map((index) => {
           const loadout = entry?.loadouts[index]
           const selected = !!loadout && member.loadoutId === loadout.id
@@ -136,21 +160,6 @@ export function YuanHubMemberCard({
           )
         })}
       </fieldset>
-      <div className="yuanhub-loadout-clear-row">
-        {member.loadoutId !== null ? (
-          <Button
-            minimal
-            small
-            className="yuanhub-clear-loadout"
-            disabled={busy}
-            onClick={() => onSelect(null)}
-          >
-            清除命盘选择
-          </Button>
-        ) : (
-          <span className="matcher-help">未选择命盘</span>
-        )}
-      </div>
       {issue && (
         <p className="yuanhub-member-issue" role="alert">
           {issue}
@@ -199,6 +208,6 @@ export function YuanHubMemberCard({
           </p>
         ))}
       </details>
-    </li>
+    </article>
   )
 }
