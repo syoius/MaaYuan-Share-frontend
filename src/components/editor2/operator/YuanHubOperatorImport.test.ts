@@ -80,12 +80,12 @@ afterEach(async () => {
   container.remove()
   ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = false
 })
-const open = async (apply = vi.fn()) => {
+const open = async (apply = vi.fn(), groupCount = 0) => {
   await act(async () =>
     root.render(
       createElement(YuanHubOperatorImport, {
         currentOperators: [],
-        groupCount: 0,
+        groupCount,
         onApply: apply,
       }),
     ),
@@ -93,17 +93,15 @@ const open = async (apply = vi.fn()) => {
   await act(async () => button('从 YuanHub 导入').click())
   return apply
 }
-it('imports selected training while matching is disabled without changing matcher settings', async () => {
+it('shows an empty preset state without manual import controls', async () => {
   const apply = await open()
+  expect(document.body.textContent).toContain('暂无阵容预设')
+  expect(document.body.textContent).not.toContain('手动选择（不使用预设）')
+  expect(document.querySelector('input[type="checkbox"]')).toBeNull()
+  expect(document.querySelector('input[placeholder="搜索密探名称"]')).toBeNull()
+  expect(button('追加所选密探')).toBeUndefined()
+  expect(button('新建预设').disabled).toBe(false)
   expect(apply).not.toHaveBeenCalled()
-  await act(async () =>
-    document.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click(),
-  )
-  await act(async () => button('追加所选密探').click())
-  expect(apply).toHaveBeenCalledWith(
-    [expect.objectContaining({ name: OPERATORS[0].name, attack: 1, hp: 2 })],
-    'append',
-  )
   expect(mocks.setSettings).not.toHaveBeenCalled()
 })
 it('switching game accounts aborts the pending roster and ignores a late response', async () => {
@@ -151,37 +149,6 @@ it('failed roster reads leave the current draft untouched', async () => {
     '连接已撤销',
   )
   expect(apply).not.toHaveBeenCalled()
-})
-
-it('changes the actual loadout before applying without merging its alternatives', async () => {
-  mocks.training.mockResolvedValue({
-    ...snapshot,
-    operators: [
-      {
-        ...snapshot.operators[0],
-        loadouts: [
-          { id: 'one', name: '一盘', discs: [OPERATORS[0].discs[0].ot_name] },
-          { id: 'two', name: '二盘', discs: [OPERATORS[0].discs[1].ot_name] },
-        ],
-      },
-    ],
-  })
-  const apply = await open()
-  const select = Array.from(document.querySelectorAll('select')).find((item) =>
-    item.querySelector('option[value="two"]'),
-  )!
-  await act(async () => {
-    select.value = 'two'
-    select.dispatchEvent(new Event('change', { bubbles: true }))
-  })
-  await act(async () =>
-    document.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click(),
-  )
-  await act(async () => button('追加所选密探').click())
-  expect(apply).toHaveBeenCalledWith(
-    [expect.objectContaining({ discsSelected: [2, 0, 0] })],
-    'append',
-  )
 })
 
 const fiveSnapshot = () => ({
@@ -288,7 +255,6 @@ it('loads a cloud preset on reopening and applies selected loadouts with replace
   mocks.training.mockResolvedValue(fiveSnapshot())
   mocks.presets.mockResolvedValue([savedPreset()])
   const apply = await open()
-  await changeSelect('select[id$="-mode"]', 'replace')
   await act(async () => button('应用预设到当前作业').click())
   expect(apply).toHaveBeenCalledWith(
     OPERATORS.slice(0, 5).map((op) =>
@@ -360,15 +326,18 @@ it('clears cloud presets on account switch and rejects late responses from the p
     game: '代号鸢',
   })
 })
-it('preserves manual import when the cloud endpoint is unavailable', async () => {
+it('shows cloud errors without falling back to manual import and supports retry', async () => {
   mocks.presets.mockRejectedValue(new Error('本站后端尚未部署云端阵容预设接口'))
   const apply = await open()
   expect(document.body.textContent).toContain('尚未部署')
-  await act(async () =>
-    document.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click(),
-  )
-  await act(async () => button('追加所选密探').click())
-  expect(apply).toHaveBeenCalledTimes(1)
+  expect(document.body.textContent).not.toContain('暂无阵容预设')
+  expect(document.querySelector('input[type="checkbox"]')).toBeNull()
+  expect(button('追加所选密探')).toBeUndefined()
+  expect(apply).not.toHaveBeenCalled()
+  mocks.presets.mockResolvedValue([])
+  await act(async () => button('重试同步预设').click())
+  expect(document.body.textContent).toContain('暂无阵容预设')
+  expect(document.body.textContent).not.toContain('尚未部署')
 })
 
 it('shows missing training and real star slots without fabricated values, and removes a card', async () => {
@@ -410,7 +379,7 @@ it('shows missing training and real star slots without fabricated values, and re
   ).toBe('空槽')
   expect(
     Array.from(card.querySelectorAll('dd')).map((el) => el.textContent),
-  ).toEqual(['100', '待补充', '17', '0'])
+  ).toEqual(['100', '未知', '17', '0'])
   expect(
     Array.from(
       card.querySelectorAll<HTMLInputElement>('input[type="radio"]'),
@@ -433,4 +402,49 @@ it('shows missing training and real star slots without fabricated values, and re
   expect(document.activeElement).toBe(
     document.querySelector('input[placeholder="搜索密探名称"]'),
   )
+})
+
+it('keeps connection and preset controls in one body with a separate footer and read-only preview', async () => {
+  mocks.training.mockResolvedValue(fiveSnapshot())
+  mocks.presets.mockResolvedValue([savedPreset()])
+  await open()
+  const bodies = document.querySelectorAll('.bp4-dialog-body')
+  expect(bodies).toHaveLength(1)
+  const body = bodies[0]
+  expect(body.querySelector('select[id$="-account"]')).not.toBeNull()
+  expect(body.querySelector('select[id$="-preset"]')).not.toBeNull()
+  expect(body.querySelector('.matcher-footer')).toBeNull()
+  expect(body.querySelector('input[type="radio"]')).toBeNull()
+  expect(body.querySelectorAll('.yuanhub-selected-loadout')).toHaveLength(5)
+  expect(
+    body.querySelectorAll('details:not([open]) .yuanhub-member-stones'),
+  ).toHaveLength(5)
+  expect(body.textContent).not.toContain('导入方式')
+  expect(body.querySelector('select[id$="-mode"]')).toBeNull()
+  await act(async () => button('编辑阵容与命盘').click())
+  expect(document.querySelectorAll('.bp4-dialog-body')).toHaveLength(1)
+  expect(document.querySelector('select[id$="-account"]')).toBeNull()
+  expect(document.querySelectorAll('input[type="radio"]')).toHaveLength(10)
+})
+it('explains capacity and invalid loadout blockers next to the apply button', async () => {
+  mocks.training.mockResolvedValue(fiveSnapshot())
+  mocks.presets.mockResolvedValue([savedPreset()])
+  const apply = await open(vi.fn(), 1)
+  const applyButton = button('应用预设到当前作业')
+  expect(applyButton.disabled).toBe(true)
+  const reason = document.getElementById(
+    applyButton.getAttribute('aria-describedby')!,
+  )!
+  expect(reason.closest('.matcher-footer')).not.toBeNull()
+  expect(reason.textContent).toContain('不能超过 5 个位置')
+  expect(applyButton.disabled).toBe(true)
+  expect(apply).not.toHaveBeenCalled()
+  const preset = savedPreset()
+  preset.members[0].loadoutId = 'deleted'
+  mocks.presets.mockResolvedValue([preset])
+  await act(async () => button('刷新预设').click())
+  expect(document.querySelector('.matcher-footer')!.textContent).toContain(
+    '原命盘方案已不存在',
+  )
+  expect(applyButton.disabled).toBe(true)
 })

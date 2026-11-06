@@ -6,7 +6,7 @@ import {
   InputGroup,
 } from '@blueprintjs/core'
 
-import { useEffect, useId, useRef, useState } from 'react'
+import { ReactNode, useEffect, useId, useRef, useState } from 'react'
 
 import {
   readYuanHubTeamPresets,
@@ -22,16 +22,15 @@ import type { YuanHubTrainingSnapshot } from '../../../models/yuanhubTraining'
 import { formatError } from '../../../utils/error'
 import { OperatorAvatar } from '../../OperatorAvatar'
 import type { OperatorImportTarget } from './OperatorImportPreview'
-import { YuanHubDirectImport } from './YuanHubDirectImport'
 import { YuanHubMemberCard } from './YuanHubMemberCard'
 import {
-  OperatorImportMode,
   mergeImportedOperators,
   yuanHubImportCandidate,
 } from './yuanhubImportModel'
 
 export function YuanHubTeamPresets({
   snapshot,
+  connectionContent,
   userId,
   onEditingChange,
   onClose,
@@ -39,6 +38,7 @@ export function YuanHubTeamPresets({
   groupCount,
   onApply,
 }: OperatorImportTarget & {
+  connectionContent: ReactNode
   snapshot: YuanHubTrainingSnapshot
   userId: string
   onEditingChange: (value: boolean) => void
@@ -51,7 +51,6 @@ export function YuanHubTeamPresets({
   const [label, setLabel] = useState('')
   const [members, setMembers] = useState<YuanHubTeamMember[]>([])
   const [query, setQuery] = useState('')
-  const [mode, setMode] = useState<OperatorImportMode>('append')
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState('')
@@ -158,18 +157,24 @@ export function YuanHubTeamPresets({
         currentOperators,
         candidates.map((c) => c.candidate!.operator!),
         groupCount,
-        mode,
+        'replace',
       )
     } catch (caught) {
       applyError = formatError(caught)
     }
   }
+  const invalidMember = candidates.find((candidate) => candidate.issue)
+  const applyDisabledReason = busy
+    ? '正在同步云端预设，请稍候。'
+    : invalidMember
+      ? `${invalidMember.candidate?.label ?? invalidMember.member.operatorId}：${invalidMember.issue}。请点击「编辑阵容与命盘」修复。`
+      : applyError
   const apply = () => {
     if (!selected || invalid || busy) return
     try {
       const incoming = candidates.map((c) => c.candidate!.operator!)
-      mergeImportedOperators(currentOperators, incoming, groupCount, mode)
-      onApply(incoming, mode)
+      mergeImportedOperators(currentOperators, incoming, groupCount, 'replace')
+      onApply(incoming, 'replace')
     } catch (caught) {
       setError(formatError(caught))
     }
@@ -187,6 +192,7 @@ export function YuanHubTeamPresets({
   return (
     <>
       <DialogBody className="matcher-body yuanhub-team-body">
+        {!editing && connectionContent}
         {editing ? (
           <>
             <div className="matcher-label-row">
@@ -243,7 +249,9 @@ export function YuanHubTeamPresets({
                 setNotice('')
               }}
             >
-              <option value="">手动选择（不使用预设）</option>
+              <option value="" disabled>
+                请选择阵容预设
+              </option>
               {presets.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.label}
@@ -251,7 +259,8 @@ export function YuanHubTeamPresets({
               ))}
             </HTMLSelect>
             <p className="matcher-help">
-              预设随本站账号云同步，按 YuanHub 游戏账号独立保存。
+              阵容预设保存在本站，按 YuanHub 游戏账号独立保存；养成数据来自
+              YuanHub。
             </p>
           </div>
         )}
@@ -397,56 +406,24 @@ export function YuanHubTeamPresets({
             </p>
           </>
         )}
-        {!editing && selected && (
-          <div className="yuanhub-team-section">
-            <label htmlFor={`${id}-mode`}>导入方式</label>
-            <HTMLSelect
-              id={`${id}-mode`}
-              fill
-              value={mode}
-              onChange={(e) => {
-                setMode(e.currentTarget.value as OperatorImportMode)
-                setError('')
-              }}
-            >
-              <option value="append">追加密探（保留当前阵容）</option>
-              <option value="replace">
-                替换当前固定阵容（保留候选分组，可撤销）
-              </option>
-            </HTMLSelect>
-            <p className="matcher-help">
-              候选分组占 {groupCount} 个位置；固定密探与候选分组合计最多 5 位。
-            </p>
-            {mode === 'replace' && (
-              <p className="matcher-help">
-                将替换当前作业的固定阵容；候选分组保留。
-              </p>
-            )}
-            {applyError && <p role="alert">{applyError}</p>}
-            <p className="matcher-help">
-              导入后请按作业要求调整；星级不包含完整化极与觉醒信息。
-            </p>
-          </div>
-        )}
-        {!editing && !selected && !busy && (
-          <>
-            <p className="matcher-help">
-              可直接导入 1 至 5 位密探；保存五人组合请点击「新建预设」。
-            </p>
-            <YuanHubDirectImport
-              snapshot={snapshot}
-              currentOperators={currentOperators}
-              groupCount={groupCount}
-              onApply={onApply}
-            />
-          </>
+        {!editing && !selected && !busy && loaded && !error && (
+          <p className="matcher-help">暂无阵容预设，请点击「新建预设」。</p>
         )}
       </DialogBody>
       <div className="matcher-footer">
+        {!editing && selected && applyDisabledReason && (
+          <p
+            id={`${id}-apply-reason`}
+            className="yuanhub-apply-reason"
+            role="status"
+          >
+            {applyDisabledReason}
+          </p>
+        )}
         <span className="matcher-help">
           {editing
             ? '仅保存到本站云端，不改写 YuanHub。'
-            : '仅复制到当前作业，不改写 YuanHub。'}
+            : '应用将替换当前固定阵容，可撤销；不改写 YuanHub。'}
         </span>
         <div className="matcher-actions">
           <Button
@@ -474,7 +451,10 @@ export function YuanHubTeamPresets({
           ) : selected ? (
             <Button
               intent="primary"
-              disabled={busy || invalid || !!applyError}
+              disabled={!!applyDisabledReason}
+              aria-describedby={
+                applyDisabledReason ? `${id}-apply-reason` : undefined
+              }
               onClick={apply}
             >
               应用预设到当前作业

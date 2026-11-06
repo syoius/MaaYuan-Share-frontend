@@ -15,9 +15,6 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body {
 body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
   flex-shrink: 0;
 }
-body .bp4-dialog.yuanhub-import-dialog .yuanhub-connection-body {
-  padding-bottom: 16px;
-}
 .yuanhub-import-dialog .matcher-footer {
   flex-shrink: 0;
   background: var(--matcher-surface);
@@ -215,4 +212,17 @@ body .bp4-dialog.yuanhub-team-edit-dialog {
     width: 100%;
     justify-content: flex-end;
   }
+}
+
+.yuanhub-apply-reason {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--matcher-danger);
+}
+.yuanhub-selected-loadout {
+  margin-bottom: 12px;
+}
+.yuanhub-selected-loadout p {
+  margin: 4px 0 0;
+  color: var(--matcher-muted);
 }
