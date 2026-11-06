@@ -1,0 +1,218 @@
+body .bp4-dialog.yuanhub-import-dialog {
+  width: min(680px, calc(100vw - 32px));
+  overflow: hidden;
+}
+.yuanhub-import-dialog .bp4-dialog-header {
+  flex-shrink: 0;
+}
+body .bp4-dialog.yuanhub-import-dialog .matcher-body {
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  gap: 12px;
+}
+body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
+  flex-shrink: 0;
+}
+body .bp4-dialog.yuanhub-import-dialog .yuanhub-connection-body {
+  padding-bottom: 16px;
+}
+.yuanhub-import-dialog .matcher-footer {
+  flex-shrink: 0;
+  background: var(--matcher-surface);
+}
+.yuanhub-team-section {
+  border-top: 1px solid var(--matcher-border);
+  padding-top: 16px;
+}
+.yuanhub-team-members,
+.yuanhub-team-picker {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+body .bp4-dialog.yuanhub-team-edit-dialog {
+  width: min(960px, calc(100vw - 32px));
+}
+.yuanhub-team-members {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.yuanhub-member-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--matcher-border);
+  border-radius: 10px;
+  background: var(--matcher-surface);
+}
+.yuanhub-member-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.yuanhub-member-header > img {
+  flex-shrink: 0;
+}
+.yuanhub-member-identity {
+  flex: 1;
+  min-width: 0;
+}
+.yuanhub-member-identity > strong {
+  display: block;
+  font-size: 20px;
+}
+.yuanhub-member-stars {
+  color: var(--matcher-accent);
+  font-size: 13px;
+}
+.yuanhub-member-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+  margin: 0 0 16px;
+}
+.yuanhub-member-stats > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--matcher-border);
+  border-radius: 6px;
+}
+.yuanhub-member-stats dt {
+  color: var(--matcher-muted);
+}
+.yuanhub-member-stats dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.yuanhub-member-loadouts {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.yuanhub-member-loadouts legend {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.yuanhub-loadout-option {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.yuanhub-loadout-option > span:first-of-type {
+  white-space: nowrap;
+}
+.yuanhub-loadout-option:has(input:checked) {
+  background: var(--matcher-button-surface);
+}
+.yuanhub-loadout-option:has(input:disabled) {
+  cursor: default;
+}
+.yuanhub-loadout-option input {
+  accent-color: var(--matcher-accent);
+  flex-shrink: 0;
+}
+.yuanhub-loadout-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+.yuanhub-disc-effect {
+  padding: 2px 6px;
+  border: 1px solid var(--matcher-border);
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.yuanhub-clear-loadout {
+  align-self: flex-start;
+}
+.yuanhub-member-stones {
+  margin: 12px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--matcher-border);
+}
+.yuanhub-star-slots {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+.yuanhub-star-slot {
+  padding: 6px 2px;
+  border: 1px dashed var(--matcher-border);
+  border-radius: 6px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.yuanhub-star-slot > span {
+  display: block;
+  color: var(--matcher-muted);
+  font-size: 10px;
+}
+.yuanhub-star-slot > strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.yuanhub-member-details {
+  margin-top: auto;
+  font-size: 12px;
+}
+.yuanhub-member-details summary {
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  background: var(--matcher-text);
+  color: var(--matcher-surface);
+}
+.yuanhub-member-details p {
+  margin: 8px 0 0;
+  color: var(--matcher-muted);
+}
+.yuanhub-member-details summary:focus-visible,
+.yuanhub-loadout-option input:focus-visible {
+  outline: 2px solid var(--matcher-accent);
+  outline-offset: 3px;
+}
+.yuanhub-member-issue {
+  margin: 4px 0;
+  color: var(--matcher-danger);
+}
+.yuanhub-team-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.yuanhub-team-picker .bp4-button {
+  width: 100%;
+  justify-content: flex-start;
+}
+@media (max-width: 640px) {
+  .yuanhub-team-members {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .yuanhub-member-card {
+    padding: 12px;
+  }
+  .yuanhub-import-dialog .matcher-footer .matcher-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
