@@ -13,26 +13,23 @@ export function YuanHubMemberCard({
   entry,
   candidate,
   issue,
-  editing,
   busy,
   onSelect,
   onRemove,
+  onReplace,
 }: {
   member: YuanHubTeamMember
   entry?: YuanHubTrainingEntry
   candidate?: OperatorImportCandidate
   issue?: string
-  editing: boolean
   busy: boolean
   onSelect: (loadoutId: string | null) => void
   onRemove: () => void
+  onReplace: () => void
 }) {
   const id = useId()
   const name = candidate?.label ?? member.operatorId
   const operator = candidate?.operator
-  const selectedLoadout = entry?.loadouts.find(
-    (loadout) => loadout.id === member.loadoutId,
-  )
   const discCatalog = findOperatorById(member.operatorId)?.discs
   const effects = (discs: string[]) =>
     discs.map((disc, i) => {
@@ -62,7 +59,16 @@ export function YuanHubMemberCard({
             {stars ? '★'.repeat(stars) : '星级未知'}
           </span>
         </div>
-        {editing && (
+        <div className="yuanhub-member-actions">
+          <Button
+            minimal
+            small
+            disabled={busy}
+            aria-label={`替换${name}`}
+            onClick={onReplace}
+          >
+            替换
+          </Button>
           <Button
             minimal
             icon="cross"
@@ -70,7 +76,7 @@ export function YuanHubMemberCard({
             disabled={busy}
             onClick={onRemove}
           />
-        )}
+        </div>
       </div>
       <div className="yuanhub-member-stats">
         <dl className="yuanhub-member-training">
@@ -94,88 +100,57 @@ export function YuanHubMemberCard({
           </div>
         </dl>
       </div>
-      {editing ? (
-        <fieldset
-          className="yuanhub-member-loadouts"
-          disabled={!editing || busy}
-        >
-          <legend>命盘方案</legend>
-          {[0, 1].map((index) => {
-            const loadout = entry?.loadouts[index]
-            return (
-              <label key={index} className="yuanhub-loadout-option">
-                <input
-                  type="radio"
-                  name={`${id}-loadout`}
-                  aria-label={`${name}的命盘${index + 1}`}
-                  checked={!!loadout && member.loadoutId === loadout.id}
-                  disabled={!loadout}
-                  onChange={() => loadout && onSelect(loadout.id)}
-                />
-                <span>命盘{index + 1}</span>
-                <span className="yuanhub-loadout-effects">
-                  {loadout?.discs.length ? (
-                    effects(loadout.discs)
-                  ) : (
-                    <span className="matcher-help">
-                      {loadout ? '未配置词条' : '暂无方案'}
-                    </span>
-                  )}
-                </span>
-              </label>
-            )
-          })}
-        </fieldset>
-      ) : (
-        <div className="yuanhub-selected-loadout" aria-label="命盘方案预览">
-          {Array.from(
-            { length: Math.max(2, entry?.loadouts.length ?? 0) },
-            (_, index) => {
-              const loadout = entry?.loadouts[index]
-              const selected = !!loadout && loadout.id === member.loadoutId
-              return (
-                <div
-                  className="yuanhub-loadout-preview"
-                  data-selected={selected}
-                  key={loadout?.id ?? index}
-                >
-                  <div className="yuanhub-loadout-name">
-                    <strong>{loadout?.name ?? `命盘${index + 1}`}</strong>
-                    {selected && (
-                      <span className="yuanhub-loadout-selected">将导入</span>
-                    )}
-                  </div>
-                  <div className="yuanhub-loadout-effects">
-                    {loadout?.discs.length ? (
-                      effects(loadout.discs)
-                    ) : (
-                      <span className="yuanhub-loadout-empty">
-                        {loadout ? '未配置词条' : '暂无方案'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            },
-          )}
-          {!selectedLoadout && (
-            <p className="matcher-help">
-              {member.loadoutId === null ? '未选择命盘' : '方案已失效'}
-            </p>
-          )}
-        </div>
-      )}
-      {editing && member.loadoutId !== null && (
-        <Button
-          minimal
-          small
-          className="yuanhub-clear-loadout"
-          disabled={busy}
-          onClick={() => onSelect(null)}
-        >
-          清除命盘选择
-        </Button>
-      )}
+      <fieldset className="yuanhub-member-loadouts" disabled={busy}>
+        <legend>命盘方案</legend>
+        {[0, 1].map((index) => {
+          const loadout = entry?.loadouts[index]
+          const selected = !!loadout && member.loadoutId === loadout.id
+          return (
+            <label
+              key={index}
+              className="yuanhub-loadout-option"
+              data-selected={selected}
+            >
+              <input
+                type="radio"
+                name={`${id}-loadout`}
+                aria-label={`${name}的命盘${index + 1}`}
+                checked={selected}
+                disabled={!loadout}
+                onChange={() => loadout && onSelect(loadout.id)}
+              />
+              <span>命盘 {index + 1}</span>
+              {selected && (
+                <span className="yuanhub-loadout-selected">已选</span>
+              )}
+              <span className="yuanhub-loadout-effects">
+                {loadout?.discs.length ? (
+                  effects(loadout.discs)
+                ) : (
+                  <span className="yuanhub-loadout-empty">
+                    {loadout ? '未配置词条' : '暂无方案'}
+                  </span>
+                )}
+              </span>
+            </label>
+          )
+        })}
+      </fieldset>
+      <div className="yuanhub-loadout-clear-row">
+        {member.loadoutId !== null ? (
+          <Button
+            minimal
+            small
+            className="yuanhub-clear-loadout"
+            disabled={busy}
+            onClick={() => onSelect(null)}
+          >
+            清除命盘选择
+          </Button>
+        ) : (
+          <span className="matcher-help">未选择命盘</span>
+        )}
+      </div>
       {issue && (
         <p className="yuanhub-member-issue" role="alert">
           {issue}

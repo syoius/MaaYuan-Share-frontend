@@ -59,6 +59,7 @@ const snapshot = {
 }
 beforeEach(() => {
   ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
   mocks.userId = 'owner'
   mocks.presets.mockReset().mockResolvedValue([])
   mocks.savePreset.mockReset()
@@ -78,6 +79,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount())
   container.remove()
+  vi.restoreAllMocks()
   ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT = false
 })
 const open = async (apply = vi.fn(), groupCount = 0) => {
@@ -255,7 +257,7 @@ it('loads a cloud preset on reopening and applies selected loadouts with replace
   mocks.training.mockResolvedValue(fiveSnapshot())
   mocks.presets.mockResolvedValue([savedPreset()])
   const apply = await open()
-  await act(async () => button('应用预设到当前作业').click())
+  await act(async () => button('应用到当前作业').click())
   expect(apply).toHaveBeenCalledWith(
     OPERATORS.slice(0, 5).map((op) =>
       expect.objectContaining({
@@ -292,10 +294,6 @@ it.each([
       ).toContain('5 名成员')
     }
     const members = document.querySelector('.yuanhub-team-members')!
-    expect(
-      button('编辑阵容与命盘').compareDocumentPosition(members) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
     expect(members.querySelectorAll('details')).toHaveLength(5)
     expect(
       Array.from(members.querySelectorAll('summary')).every(
@@ -311,7 +309,11 @@ it('keeps edits visible after cloud save failure without displaying success', as
     new Error('预设已在其他设备修改，请刷新后重试'),
   )
   await open()
-  await act(async () => button('编辑阵容与命盘').click())
+  await act(async () =>
+    document
+      .querySelector<HTMLButtonElement>('button[aria-label="重命名预设"]')!
+      .click(),
+  )
   await changeInput('input[placeholder="例如：日常推图"]', '修改未保存')
   await act(async () => button('保存预设').click())
   expect(document.body.textContent).toContain('其他设备修改')
@@ -333,7 +335,7 @@ it('blocks applying a preset with a deleted loadout instead of silently substitu
   mocks.presets.mockResolvedValue([preset])
   await open()
   expect(document.body.textContent).toContain('原命盘方案已不存在')
-  expect(button('应用预设到当前作业').disabled).toBe(true)
+  expect(button('应用到当前作业').disabled).toBe(true)
 })
 it('clears cloud presets on account switch and rejects late responses from the previous account', async () => {
   let resolve!: (value: ReturnType<typeof savedPreset>[]) => void
@@ -400,7 +402,6 @@ it('shows missing training and real star slots without fabricated values, and re
   })
   mocks.presets.mockResolvedValue([savedPreset()])
   await open()
-  await act(async () => button('编辑阵容与命盘').click())
   const card = document.querySelector('.yuanhub-member-card')!
   expect(card.querySelectorAll('.yuanhub-star-slot')).toHaveLength(6)
   expect(
@@ -446,7 +447,7 @@ it('shows missing training and real star slots without fabricated values, and re
   )
 })
 
-it('keeps connection and preset controls in one body with a separate footer and read-only preview', async () => {
+it('keeps connection and preset controls in one body with a separate footer and inline editing', async () => {
   mocks.training.mockResolvedValue(fiveSnapshot())
   mocks.presets.mockResolvedValue([savedPreset()])
   await open()
@@ -456,23 +457,22 @@ it('keeps connection and preset controls in one body with a separate footer and 
   expect(body.querySelector('select[id$="-account"]')).not.toBeNull()
   expect(body.querySelector('select[id$="-preset"]')).not.toBeNull()
   expect(body.querySelector('.matcher-footer')).toBeNull()
-  expect(body.querySelector('input[type="radio"]')).toBeNull()
-  expect(body.querySelectorAll('.yuanhub-selected-loadout')).toHaveLength(5)
+  expect(body.querySelectorAll('input[type="radio"]')).toHaveLength(10)
+  expect(button('编辑阵容与命盘')).toBeUndefined()
   expect(
     body.querySelectorAll('details:not([open]) .yuanhub-member-stones'),
   ).toHaveLength(5)
   expect(body.textContent).not.toContain('导入方式')
   expect(body.querySelector('select[id$="-mode"]')).toBeNull()
-  await act(async () => button('编辑阵容与命盘').click())
   expect(document.querySelectorAll('.bp4-dialog-body')).toHaveLength(1)
-  expect(document.querySelector('select[id$="-account"]')).toBeNull()
+  expect(document.querySelector('select[id$="-account"]')).not.toBeNull()
   expect(document.querySelectorAll('input[type="radio"]')).toHaveLength(10)
 })
 it('explains capacity and invalid loadout blockers next to the apply button', async () => {
   mocks.training.mockResolvedValue(fiveSnapshot())
   mocks.presets.mockResolvedValue([savedPreset()])
   const apply = await open(vi.fn(), 1)
-  const applyButton = button('应用预设到当前作业')
+  const applyButton = button('应用到当前作业')
   expect(applyButton.disabled).toBe(true)
   const reason = document.getElementById(
     applyButton.getAttribute('aria-describedby')!,
@@ -507,7 +507,7 @@ it('uses catalog colors for both loadouts and marks only the imported scheme', a
   await open()
   const cards = document.querySelectorAll('.yuanhub-member-card')
   for (const [index, op] of training.operators.entries()) {
-    const rows = cards[index].querySelectorAll('.yuanhub-loadout-preview')
+    const rows = cards[index].querySelectorAll('.yuanhub-loadout-option')
     expect(rows).toHaveLength(2)
     for (const [loadoutIndex, loadout] of op.loadouts.entries()) {
       const chips = rows[loadoutIndex].querySelectorAll('.yuanhub-disc-effect')
@@ -528,10 +528,199 @@ it('uses catalog colors for both loadouts and marks only the imported scheme', a
   expect(cards[1].querySelectorAll('.yuanhub-loadout-empty')).toHaveLength(2)
   expect(cards[1].textContent).toContain('未选择命盘')
   expect(cards[1].textContent).toContain('暂无方案')
-  await act(async () => button('编辑阵容与命盘').click())
   expect(
     document.querySelectorAll(
       '.yuanhub-loadout-option .yuanhub-disc-effect[data-color]',
     ).length,
   ).toBeGreaterThan(0)
+})
+
+const selectFirstLoadout = async () => {
+  await act(async () =>
+    document
+      .querySelector<HTMLInputElement>(
+        `input[aria-label="${OPERATORS[0].name}的命盘1"]`,
+      )!
+      .click(),
+  )
+}
+it('applies the inline draft without saving or overwriting the cloud preset', async () => {
+  mocks.training.mockResolvedValue(fiveSnapshot())
+  mocks.presets.mockResolvedValue([savedPreset()])
+  const apply = await open()
+  await selectFirstLoadout()
+  expect(document.body.textContent).toContain('预设有未保存修改')
+  await act(async () => button('应用到当前作业').click())
+  expect(apply.mock.calls[0][0][0].discsSelected).toEqual([1, 0, 0])
+  expect(mocks.savePreset).not.toHaveBeenCalled()
+  expect(window.confirm).not.toHaveBeenCalled()
+})
+it.each([
+  'close',
+  'account',
+  'preset',
+  'refresh',
+  'training',
+  'token',
+  'new',
+  'undo',
+])(
+  'preserves unsaved changes when discarding is declined (%s)',
+  async (action) => {
+    mocks.training.mockResolvedValue(fiveSnapshot())
+    mocks.presets.mockResolvedValue([
+      savedPreset(),
+      { ...savedPreset(), id: 'other', label: '另一套' },
+    ])
+    await open()
+    await selectFirstLoadout()
+    vi.mocked(window.confirm).mockReturnValue(false)
+    const reads = mocks.training.mock.calls.length
+    if (action === 'account') await changeSelect('select[id$="-account"]', 'b')
+    else if (action === 'preset')
+      await changeSelect('select[id$="-preset"]', 'other')
+    else {
+      const labels = {
+        close: '取消',
+        refresh: '刷新预设',
+        training: '刷新档案',
+        token: '更换连接码',
+        new: '新建预设',
+        undo: '撤销修改',
+      }
+      await act(async () =>
+        button(labels[action as keyof typeof labels]).click(),
+      )
+    }
+    expect(window.confirm).toHaveBeenCalledOnce()
+    expect(
+      document.querySelector<HTMLInputElement>(
+        `input[aria-label="${OPERATORS[0].name}的命盘1"]`,
+      )!.checked,
+    ).toBe(true)
+    expect(
+      document.querySelector<HTMLSelectElement>('select[id$="-account"]')!
+        .value,
+    ).toBe('a')
+    expect(
+      document.querySelector<HTMLSelectElement>('select[id$="-preset"]')!.value,
+    ).toBe('preset')
+    expect(mocks.training).toHaveBeenCalledTimes(reads)
+    expect(mocks.presets).toHaveBeenCalledTimes(1)
+  },
+)
+it('undo restores the selected preset and clears the dirty state', async () => {
+  mocks.training.mockResolvedValue(fiveSnapshot())
+  mocks.presets.mockResolvedValue([savedPreset()])
+  await open()
+  await selectFirstLoadout()
+  await act(async () => button('撤销修改').click())
+  expect(document.body.textContent).not.toContain('预设有未保存修改')
+  expect(
+    document.querySelector<HTMLInputElement>(
+      `input[aria-label="${OPERATORS[0].name}的命盘2"]`,
+    )!.checked,
+  ).toBe(true)
+  expect(button('保存预设').disabled).toBe(true)
+})
+it('replaces a member in place and saves a copy without the original id or version', async () => {
+  const training = fiveSnapshot()
+  training.operators.push({
+    ...training.operators[0],
+    id: OPERATORS[5].id,
+    loadouts: [],
+  })
+  mocks.training.mockResolvedValue(training)
+  mocks.presets.mockResolvedValue([savedPreset()])
+  mocks.savePreset.mockImplementation(async (_owner, req) => ({
+    ...req,
+    id: 'copy',
+    version: 0,
+  }))
+  await open()
+  await act(async () =>
+    document
+      .querySelector<HTMLButtonElement>(
+        `button[aria-label="替换${OPERATORS[1].name}"]`,
+      )!
+      .click(),
+  )
+  expect(document.querySelectorAll('.yuanhub-member-card')).toHaveLength(5)
+  await act(async () =>
+    document
+      .querySelector<HTMLButtonElement>(
+        `button[aria-label="添加${OPERATORS[5].name}"]`,
+      )!
+      .click(),
+  )
+  expect(
+    document
+      .querySelectorAll('.yuanhub-member-card')[1]
+      .getAttribute('aria-label'),
+  ).toBe(OPERATORS[5].name)
+  await act(async () => button('另存为新预设').click())
+  const request = mocks.savePreset.mock.calls[0][1]
+  expect(request.id).toBeUndefined()
+  expect(request.version).toBeUndefined()
+  expect(request.members[1]).toEqual({
+    operatorId: OPERATORS[5].id,
+    loadoutId: null,
+  })
+  expect(
+    document.querySelector<HTMLSelectElement>('select[id$="-preset"]')!.value,
+  ).toBe('copy')
+  expect(document.body.textContent).not.toContain('预设有未保存修改')
+})
+it('applies an unnamed new five-member draft without creating a cloud preset', async () => {
+  mocks.training.mockResolvedValue(fiveSnapshot())
+  const apply = await open()
+  await act(async () => button('新建预设').click())
+  for (const op of OPERATORS.slice(0, 5)) {
+    await act(async () =>
+      document
+        .querySelector<HTMLButtonElement>(
+          `button[aria-label="添加${op.name}"]`,
+        )!
+        .click(),
+    )
+  }
+  expect(button('保存预设').disabled).toBe(true)
+  expect(button('应用到当前作业').disabled).toBe(false)
+  await act(async () => button('应用到当前作业').click())
+  expect(apply).toHaveBeenCalledOnce()
+  expect(mocks.savePreset).not.toHaveBeenCalled()
+})
+it('blocks closing and account changes while a cloud save is pending', async () => {
+  mocks.training.mockResolvedValue(fiveSnapshot())
+  mocks.presets.mockResolvedValue([savedPreset()])
+  let resolve!: (value: ReturnType<typeof savedPreset>) => void
+  mocks.savePreset.mockReturnValue(
+    new Promise((done) => {
+      resolve = done
+    }),
+  )
+  await open()
+  await selectFirstLoadout()
+  await act(async () => button('保存预设').click())
+  expect(button('取消').disabled).toBe(true)
+  expect(
+    document.querySelector<HTMLSelectElement>('select[id$="-account"]')!
+      .disabled,
+  ).toBe(true)
+  await act(async () =>
+    document
+      .querySelector<HTMLButtonElement>('.bp4-dialog-close-button')!
+      .click(),
+  )
+  expect(document.querySelector('.yuanhub-team-members')).not.toBeNull()
+  await act(async () =>
+    resolve({
+      ...savedPreset(),
+      members: savedPreset().members.map((m, i) =>
+        i ? m : { ...m, loadoutId: 'first' },
+      ),
+    }),
+  )
+  expect(button('取消').disabled).toBe(false)
+  expect(document.body.textContent).toContain('预设已保存到云端')
 })

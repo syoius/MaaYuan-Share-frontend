@@ -24,9 +24,12 @@ export function YuanHubOperatorImport(props: OperatorImportTarget) {
   const [open, setOpen] = useState(false)
   const [session, setSession] = useState(0)
   const [editing, setEditing] = useState(false)
+  const [presetBusy, setPresetBusy] = useState(false)
   const { userId, settings } = useOperatorMatcher()
+  const canDiscard = () =>
+    !presetBusy && (!editing || window.confirm('放弃尚未保存的阵容修改？'))
   const close = () => {
-    if (editing && !window.confirm('放弃尚未保存的阵容修改？')) return
+    if (!canDiscard()) return
     setOpen(false)
     setEditing(false)
   }
@@ -46,8 +49,8 @@ export function YuanHubOperatorImport(props: OperatorImportTarget) {
         isOpen={open}
         onClose={close}
         canOutsideClickClose={false}
-        title={editing ? '编辑阵容预设' : '从 YuanHub 导入养成'}
-        className={`operator-matcher-dialog yuanhub-import-dialog${editing ? ' yuanhub-team-edit-dialog' : ''}`}
+        title="从 YuanHub 导入养成"
+        className="operator-matcher-dialog yuanhub-import-dialog"
         style={{ maxHeight: '90dvh' }}
       >
         {open &&
@@ -59,6 +62,9 @@ export function YuanHubOperatorImport(props: OperatorImportTarget) {
               initialToken={settings.token ?? ''}
               initialAccountId={settings.snapshot?.accountId}
               onEditingChange={setEditing}
+              onBusyChange={setPresetBusy}
+              canDiscard={canDiscard}
+              presetBusy={presetBusy}
               onClose={close}
               onApply={(operators, mode) => {
                 props.onApply(operators, mode)
@@ -81,6 +87,9 @@ function ImportSession({
   initialToken,
   initialAccountId,
   onEditingChange,
+  onBusyChange,
+  canDiscard,
+  presetBusy,
   onClose,
   ...target
 }: OperatorImportTarget & {
@@ -88,6 +97,9 @@ function ImportSession({
   initialToken: string
   initialAccountId?: string
   onEditingChange: (value: boolean) => void
+  onBusyChange: (value: boolean) => void
+  canDiscard: () => boolean
+  presetBusy: boolean
   onClose: () => void
 }) {
   const formId = useId()
@@ -100,6 +112,8 @@ function ImportSession({
   const [error, setError] = useState('')
   const request = useRef<AbortController>()
   const sync = async (selectedId?: string) => {
+    if (!canDiscard()) return
+    onEditingChange(false)
     request.current?.abort()
     const controller = new AbortController()
     request.current = controller
@@ -161,8 +175,10 @@ function ImportSession({
           </span>
           <Button
             minimal
-            disabled={busy}
+            disabled={busy || presetBusy}
             onClick={() => {
+              if (!canDiscard()) return
+              onEditingChange(false)
               setEditingToken(true)
               setError('')
             }}
@@ -188,7 +204,7 @@ function ImportSession({
             autoComplete="off"
             value={token}
             placeholder="ymatch_…"
-            disabled={busy}
+            disabled={busy || presetBusy}
             onChange={(e) => {
               setToken(e.currentTarget.value)
               setSnapshot(undefined)
@@ -218,8 +234,8 @@ function ImportSession({
                 id={`${formId}-account`}
                 fill
                 value={accountId}
+                disabled={presetBusy}
                 onChange={(e) => {
-                  setAccountId(e.currentTarget.value)
                   void sync(e.currentTarget.value)
                 }}
               >
@@ -237,6 +253,7 @@ function ImportSession({
               icon="refresh"
               className="matcher-secondary"
               loading={busy}
+              disabled={presetBusy}
               onClick={() => void sync()}
             >
               刷新档案
@@ -280,6 +297,7 @@ function ImportSession({
           snapshot={snapshot}
           userId={userId}
           onEditingChange={onEditingChange}
+          onBusyChange={onBusyChange}
           connectionContent={connectionContent}
           onClose={onClose}
         />
