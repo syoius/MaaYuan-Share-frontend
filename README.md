@@ -154,3 +154,5 @@ Vite 仅在设置 `DEV_API_PROXY` 时代理 `/api` 并去掉该前缀。Share �
 搜索回归：`yarn test src/apis/operation-search.test.ts src/components/editor2/LevelSelectDialog.test.ts`。
 
 搜索输入仍保留 500 毫秒防抖；按回车会立即提交当前关键词，不再等待剩余防抖时间。中文输入法确认候选时的回车不会触发提前提交。
+
+作业关键词可用空格组合：每个词都要匹配，允许分别出现在标题和描述中；每词保留分词匹配，并支持不区分英文大小写的子串。例如标题含 `YuanAssist`、描述含 `手机版`，输入 `yuana 手机版` 即可搜索。制表符、换行和全角空格也可分隔关键词。需要配套更新后端；作业集搜索规则保持不变。
