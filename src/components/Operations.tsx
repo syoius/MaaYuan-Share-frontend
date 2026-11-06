@@ -26,15 +26,18 @@ import { sunkOperationIdsAtom } from 'store/sunkOperations'
 
 import { mapQuickPresetToTags } from '../constants/tags'
 import { useTranslation } from '../i18n/i18n'
+import { useOperatorMatcher } from '../store/operatorMatcher'
 // 使用悬浮式按钮选择器
 import { LevelSelectButton } from './LevelSelectButton'
 import { OperatorFilter, useOperatorFilter } from './OperatorFilter'
+import { OperatorMatcher } from './OperatorMatcher'
 import { withSuspensable } from './Suspensable'
 import { TagsFilter } from './TagsFilter'
 import { UserFilter } from './UserFilter'
 
 export const Operations: ComponentType = withSuspensable(() => {
   const t = useTranslation()
+  const matcher = useOperatorMatcher()
   const refreshOperations = useRefreshOperations()
   const [queryParams, setQueryParams] = useState<
     Omit<UseOperationsParams, 'operator'>
@@ -228,6 +231,7 @@ export const Operations: ComponentType = withSuspensable(() => {
                 filter={operatorFilter}
                 onChange={setOperatorFilter}
               />
+              <OperatorMatcher key={matcher.userId ?? 'guest'} {...matcher} />
               <div className="flex flex-wrap items-center w-full sm:w-auto sm:ml-auto">
                 <H6 className="mb-0 mr-1 opacity-75">
                   {t.components.Operations.sort_by}
@@ -312,6 +316,7 @@ export const Operations: ComponentType = withSuspensable(() => {
             showReadStatus
             sunkOperationIds={sunkEnabled ? sunkOperationIds : []}
             operator={operatorFilter.enabled ? operatorFilter : undefined}
+            operatorMatcher={matcher.filter}
             // 按热度排序时列表前几页的变化不会太频繁，可以不刷新第一页，节省点流量
             revalidateFirstPage={queryParams.orderBy !== 'hot'}
           />

@@ -30,6 +30,15 @@ export default defineConfig(({ command, mode }) => {
       port: +env.PORT || undefined,
       server: '0.0.0.0',
       allowedHosts: true,
+      proxy: env.DEV_API_PROXY
+        ? {
+            '/api': {
+              target: env.DEV_API_PROXY,
+              changeOrigin: true,
+              rewrite: (path) => path.replace(/^\/api/, ''),
+            },
+          }
+        : undefined,
     },
     resolve: {
       alias: {

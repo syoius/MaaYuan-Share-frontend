@@ -16,8 +16,10 @@ import { useLevels } from '../apis/level'
 import { languageAtom, useTranslation } from '../i18n/i18n'
 import { createCustomLevel, findLevelByStageName } from '../models/level'
 import { getLocalizedOperatorName } from '../models/operator'
+import { OperationMatchResult } from '../models/operatorMatcher'
 import { readOperatorStats } from '../utils/operatorStats'
 import { OperatorAvatar } from './OperatorAvatar'
+import { OperatorMatchSummary } from './OperatorMatcher'
 import { Paragraphs } from './Paragraphs'
 import { ReLinkRenderer } from './ReLink'
 import { UserName } from './UserName'
@@ -57,12 +59,14 @@ export const NeoOperationCard = ({
   selectable,
   showReadStatus,
   onSelect,
+  matchResult,
 }: {
   operation: Operation
   selectable?: boolean
   selected?: boolean
   showReadStatus?: boolean
   onSelect?: (operation: Operation, selected: boolean) => void
+  matchResult?: OperationMatchResult
 }) => {
   const t = useTranslation()
   const { data: levels } = useLevels()
@@ -132,6 +136,8 @@ export const NeoOperationCard = ({
                 )}
               </H4>
             </Tooltip2>
+
+            <OperatorMatchSummary result={matchResult} />
 
             <div className="flex items-center text-slate-900">
               {(() => {
@@ -270,9 +276,11 @@ export const NeoOperationCard = ({
 export const OperationCard = ({
   operation,
   showReadStatus,
+  matchResult,
 }: {
   operation: Operation
   showReadStatus?: boolean
+  matchResult?: OperationMatchResult
 }) => {
   const t = useTranslation()
   const { data: levels } = useLevels()
@@ -323,6 +331,7 @@ export const OperationCard = ({
             onKeyDown={onKeyDown}
             className="flex flex-col h-full"
           >
+            <OperatorMatchSummary result={matchResult} />
             <div className="flex flex-wrap mb-4 sm:mb-2">
               {/* title */}
               <div className="flex flex-col gap-3">

@@ -4,7 +4,14 @@ import { Tooltip2 } from '@blueprintjs/popover2'
 import { useLevels } from 'apis/level'
 import { UseOperationsParams, useOperations } from 'apis/operation'
 import { useAtomValue } from 'jotai'
-import { ComponentType, ReactNode, useEffect, useState } from 'react'
+import {
+  ComponentType,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import { sunkEnabledAtom } from 'store/operationPrefs'
 import { neoLayoutAtom } from 'store/pref'
@@ -17,11 +24,16 @@ import {
   isLevelWithinTimeRange,
 } from '../models/level'
 import { Operation } from '../models/operation'
+import {
+  OperatorMatcherFilter,
+  getOperationMatchResult,
+} from '../models/operatorMatcher'
 import { NeoOperationCard, OperationCard } from './OperationCard'
 import { withSuspensable } from './Suspensable'
 import { AddToOperationSetButton } from './operation-set/AddToOperationSet'
 
 interface OperationListProps extends UseOperationsParams {
+  operatorMatcher?: OperatorMatcherFilter
   multiselect?: boolean
   showReadStatus?: boolean
   sunkOperationIds?: number[]
@@ -54,6 +66,7 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
     renderMultiSelectActions,
     sourceTypeFilter,
     hideInactiveLevels,
+    operatorMatcher,
     ...params
   }) => {
     const t = useTranslation()
@@ -62,7 +75,7 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
     const { data: levels, isLoading: levelsLoading } = useLevels()
     const [levelTimeVersion, setLevelTimeVersion] = useState(0)
 
-    const { operations, total, setSize, isValidating, isReachingEnd } =
+    const { operations, total, setSize, isValidating, isReachingEnd, error } =
       useOperations({
         ...params,
         suspense: true,
@@ -70,6 +83,32 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
 
     // make TS happy: we got Suspense out there
     if (!operations) throw new Error('unreachable')
+
+    const matchResults = useMemo(
+      () =>
+        new Map(
+          operations.map((operation) => [
+            operation.id,
+            operatorMatcher
+              ? getOperationMatchResult(operation, operatorMatcher.snapshot)
+              : undefined,
+          ]),
+        ),
+      [operations, operatorMatcher],
+    )
+    const autoLoads = useRef(0)
+    const queryKey = JSON.stringify([
+      params.orderBy,
+      params.keyword,
+      params.levelKeyword,
+      params.tags,
+      params.operator,
+      params.uploaderId,
+      params.operationIds,
+    ])
+    useEffect(() => {
+      autoLoads.current = 0
+    }, [queryKey, operatorMatcher])
 
     useEffect(() => {
       onUpdate?.({ total })
@@ -102,7 +141,8 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
       !params.uploaderId &&
       !params.operationIds?.length &&
       !params.tags?.length &&
-      !params.operator
+      !params.operator &&
+      !operatorMatcher
 
     useEffect(() => {
       if (!shouldHideInactiveLevels) return
@@ -129,6 +169,11 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
           )
         : operations
     ).filter((op) => {
+      if (
+        operatorMatcher &&
+        !operatorMatcher.modes.includes(matchResults.get(op.id)!.mode)
+      )
+        return false
       if (shouldHideInactiveLevels) {
         // ponytail: linear matching is enough for one page; use a stage map if level data grows.
         const level = findLevelByStageName(
@@ -167,6 +212,7 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
             operation={operation}
             key={operation.id}
             showReadStatus={showReadStatus}
+            matchResult={matchResults.get(operation.id)}
             selectable={multiselect}
             selected={selectedOperations?.some((op) => op.id === operation.id)}
             onSelect={onSelect}
@@ -180,6 +226,7 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
             operation={operation}
             key={operation.id}
             showReadStatus={showReadStatus}
+            matchResult={matchResults.get(operation.id)}
           />
         ))}
       </ul>
@@ -187,9 +234,12 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
 
     useEffect(() => {
       const pageSize = params.limit ?? 50
-      if (!params.tags?.length && !shouldHideInactiveLevels) return
+      if (!params.tags?.length && !shouldHideInactiveLevels && !operatorMatcher)
+        return
       if (!pageSize || displayedOperations.length >= pageSize) return
-      if (isReachingEnd || isValidating) return
+      if (isReachingEnd || isValidating || error) return
+      if (operatorMatcher && autoLoads.current >= 5) return
+      autoLoads.current += 1
       setSize((size) => size + 1)
     }, [
       params.tags,
@@ -199,6 +249,9 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
       isValidating,
       setSize,
       shouldHideInactiveLevels,
+      operatorMatcher,
+      error,
+      queryKey,
     ])
 
     return (
@@ -267,6 +320,15 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
           </Callout>
         )}
 
+        {operatorMatcher && (
+          <p className="mb-3 text-sm" aria-live="polite">
+            {t.components.OperatorMatcher.loaded({
+              matched: displayedOperations.length,
+              loaded: operations.length,
+            })}
+            {!isReachingEnd && <> {t.components.OperatorMatcher.more_hint}</>}
+          </p>
+        )}
         {items}
 
         {isReachingEnd && displayedOperations.length === 0 && (
@@ -291,7 +353,10 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
             className="mt-2"
             large
             fill
-            onClick={() => setSize((size) => size + 1)}
+            onClick={() => {
+              autoLoads.current = 0
+              void setSize((size) => size + 1)
+            }}
           />
         )}
       </>
@@ -299,6 +364,13 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
   },
   {
     // tags 变化应触发重试
-    retryOnChange: ['orderBy', 'keyword', 'levelKeyword', 'operator', 'tags'],
+    retryOnChange: [
+      'orderBy',
+      'keyword',
+      'levelKeyword',
+      'operator',
+      'tags',
+      'operatorMatcher',
+    ],
   },
 )

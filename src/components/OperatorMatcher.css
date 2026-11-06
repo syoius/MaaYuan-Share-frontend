@@ -1,0 +1,243 @@
+body .bp4-dialog.operator-matcher-dialog {
+  --matcher-surface: #fff;
+  --matcher-text: #262626;
+  --matcher-muted: #666;
+  --matcher-border: #d8d8d8;
+  --matcher-accent: var(--maayuan-accent-strong, #8f5112);
+  --matcher-on-accent: #fff;
+  width: min(540px, calc(100vw - 32px));
+  padding: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--matcher-surface);
+  color: var(--matcher-text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-dialog-header {
+  min-height: 0;
+  padding: 24px 24px 20px;
+  background: transparent;
+  box-shadow: none;
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-heading {
+  color: var(--matcher-text);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+body .bp4-dialog.operator-matcher-dialog .matcher-body {
+  margin: 0;
+  padding: 0 24px 24px;
+  overflow-y: auto;
+}
+
+.operator-matcher-dialog .matcher-field + .matcher-field {
+  margin-top: 24px;
+}
+
+.operator-matcher-dialog .matcher-label-row,
+.operator-matcher-dialog .matcher-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.operator-matcher-dialog .matcher-label-row {
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.operator-matcher-dialog .matcher-label-row label,
+.operator-matcher-dialog .bp4-label {
+  font-weight: 500;
+}
+
+body .bp4-dialog.operator-matcher-dialog a {
+  color: var(--matcher-accent);
+  font-size: 13px;
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-input,
+body .bp4-dialog.operator-matcher-dialog .bp4-html-select select {
+  height: 40px;
+  border: 1px solid var(--matcher-border);
+  border-radius: 6px;
+  background: var(--matcher-surface);
+  color: var(--matcher-text);
+  box-shadow: none;
+  font-size: 14px;
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-input:focus {
+  border-color: var(--matcher-accent);
+  outline: 2px solid var(--matcher-accent);
+  outline-offset: 2px;
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-input::placeholder {
+  color: var(--matcher-muted);
+  font-style: normal;
+}
+
+.operator-matcher-dialog .bp4-form-group {
+  margin-bottom: 0;
+}
+
+.operator-matcher-dialog .matcher-help {
+  margin: 6px 0 0;
+  color: var(--matcher-muted);
+  font-size: 13px;
+}
+
+.operator-matcher-dialog .matcher-metadata {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12px;
+}
+
+.operator-matcher-dialog .matcher-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.operator-matcher-dialog .matcher-warning .bp4-icon {
+  margin-top: 3px;
+  color: var(--matcher-accent);
+}
+
+.operator-matcher-dialog .matcher-preferences {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--matcher-border);
+}
+
+.operator-matcher-dialog .matcher-toggle-row > label {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.operator-matcher-dialog .matcher-toggle-row .bp4-switch {
+  margin: 0;
+  padding: 0;
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-switch .bp4-control-indicator {
+  margin: 0;
+}
+
+body
+  .bp4-dialog.operator-matcher-dialog
+  .bp4-switch
+  input:checked
+  ~ .bp4-control-indicator {
+  background: var(--matcher-accent);
+}
+
+.operator-matcher-dialog .matcher-details {
+  margin-top: 20px;
+  color: var(--matcher-muted);
+  font-size: 13px;
+}
+
+.operator-matcher-dialog .matcher-details summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  cursor: pointer;
+  list-style: none;
+}
+
+.operator-matcher-dialog .matcher-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.operator-matcher-dialog .matcher-details[open] summary .bp4-icon {
+  transform: rotate(180deg);
+}
+
+.operator-matcher-dialog .matcher-details p {
+  margin: 10px 0 0;
+}
+
+.operator-matcher-dialog .matcher-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--matcher-border);
+}
+
+.operator-matcher-dialog .matcher-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-button {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-weight: 500;
+  background-image: none;
+  box-shadow: none;
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-button.bp4-minimal {
+  color: var(--matcher-muted);
+}
+
+body .bp4-dialog.operator-matcher-dialog .matcher-disconnect {
+  padding-left: 0;
+  font-size: 13px;
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-button.bp4-intent-primary {
+  background: var(--matcher-accent);
+  border-color: transparent;
+  color: var(--matcher-on-accent);
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-button.bp4-intent-primary:hover {
+  filter: brightness(0.9);
+}
+
+body .bp4-dialog.operator-matcher-dialog :focus-visible {
+  outline: 2px solid var(--matcher-accent);
+  outline-offset: 3px;
+}
+
+body .bp4-dialog.operator-matcher-dialog .bp4-dialog-close-button {
+  padding: 4px;
+  min-height: 32px;
+}
+
+.dark .bp4-dialog.operator-matcher-dialog,
+body.bp4-dark .bp4-dialog.operator-matcher-dialog {
+  --matcher-surface: #252a31;
+  --matcher-text: #f2f2f2;
+  --matcher-muted: #b8bec6;
+  --matcher-border: #555b63;
+  --matcher-accent: #d78935;
+  --matcher-on-accent: #262626;
+}
+
+@media (max-width: 480px) {
+  .operator-matcher-dialog .matcher-footer {
+    gap: 8px;
+  }
+
+  .operator-matcher-dialog .matcher-disconnect {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
