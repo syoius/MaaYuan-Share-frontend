@@ -119,6 +119,19 @@ export function YuanHubTeamPresets({
     }
   })
   const invalid = candidates.some((c) => c.issue)
+  const missingAttributeCount = candidates.filter(({ candidate }) => {
+    const operator = candidate?.operator
+    return (
+      operator &&
+      [
+        operator.requirements?.level,
+        operator.requirements?.elite,
+        operator.starLevel,
+        operator.attack,
+        operator.hp,
+      ].some((value) => value === undefined)
+    )
+  }).length
   const save = async () => {
     if (members.length !== 5 || invalid || !label.trim() || busy) return
     const controller = new AbortController()
@@ -226,11 +239,17 @@ export function YuanHubTeamPresets({
             <div className="matcher-label-row">
               <label htmlFor={`${id}-preset`}>阵容预设</label>
               <div className="flex gap-2">
-                <Button minimal disabled={busy} onClick={() => void load()}>
+                <Button
+                  minimal
+                  icon="refresh"
+                  disabled={busy}
+                  onClick={() => void load()}
+                >
                   刷新预设
                 </Button>
                 <Button
                   minimal
+                  icon="plus"
                   disabled={busy || !loaded}
                   onClick={() => startEditing()}
                 >
@@ -259,8 +278,7 @@ export function YuanHubTeamPresets({
               ))}
             </HTMLSelect>
             <p className="matcher-help">
-              阵容预设保存在本站，按 YuanHub 游戏账号独立保存；养成数据来自
-              YuanHub。
+              预设按游戏账号保存在本站，养成数据来自 YuanHub。
             </p>
           </div>
         )}
@@ -287,11 +305,27 @@ export function YuanHubTeamPresets({
         )}
         {(editing || selected) && (
           <>
-            <div className="matcher-label-row">
+            <div className="matcher-label-row yuanhub-members-toolbar">
               <strong>
                 阵容成员{' '}
                 <span aria-live="polite">{visibleMembers.length} / 5</span>
               </strong>
+              {missingAttributeCount > 0 && (
+                <p className="yuanhub-missing-attributes" role="status">
+                  {missingAttributeCount}{' '}
+                  名成员属性未知或超出支持范围，应用后需补填。
+                </p>
+              )}
+              {!editing && (
+                <Button
+                  outlined
+                  className="matcher-secondary"
+                  disabled={busy}
+                  onClick={() => startEditing(selected)}
+                >
+                  编辑阵容与命盘
+                </Button>
+              )}
               {editing && (
                 <Button
                   outlined
@@ -311,7 +345,9 @@ export function YuanHubTeamPresets({
                 每位密探可选择命盘1或命盘2；养成与星石导入作业后可编辑。
               </p>
             )}
-            <ul className="yuanhub-team-members">
+            <ul
+              className={`yuanhub-team-members${editing ? '' : ' yuanhub-team-preview'}`}
+            >
               {candidates.map(({ member, entry, candidate, issue }) => (
                 <YuanHubMemberCard
                   key={member.operatorId}
@@ -338,16 +374,6 @@ export function YuanHubTeamPresets({
                 />
               ))}
             </ul>
-            {!editing && (
-              <Button
-                outlined
-                className="matcher-secondary"
-                disabled={busy}
-                onClick={() => startEditing(selected)}
-              >
-                编辑阵容与命盘
-              </Button>
-            )}
           </>
         )}
         {editing && (

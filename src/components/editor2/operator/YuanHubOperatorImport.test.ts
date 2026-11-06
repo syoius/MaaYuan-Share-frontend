@@ -269,6 +269,41 @@ it('loads a cloud preset on reopening and applies selected loadouts with replace
   expect(mocks.presets).toHaveBeenCalledTimes(2)
   expect(document.body.textContent).toContain('推图')
 })
+it.each([
+  ['complete', 1, false],
+  ['zero', 0, false],
+  ['missing', undefined, true],
+] as const)(
+  'shows the attribute hint only when needed (%s)',
+  async (_case, attack, missing) => {
+    const training = fiveSnapshot()
+    mocks.training.mockResolvedValue({
+      ...training,
+      operators: training.operators.map((op) => ({ ...op, attack })),
+    })
+    mocks.presets.mockResolvedValue([savedPreset()])
+    await open()
+    expect(!!document.querySelector('.yuanhub-missing-attributes')).toBe(
+      missing,
+    )
+    if (missing) {
+      expect(
+        document.querySelector('.yuanhub-missing-attributes')?.textContent,
+      ).toContain('5 名成员')
+    }
+    const members = document.querySelector('.yuanhub-team-members')!
+    expect(
+      button('编辑阵容与命盘').compareDocumentPosition(members) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(members.querySelectorAll('details')).toHaveLength(5)
+    expect(
+      Array.from(members.querySelectorAll('summary')).every(
+        (summary) => summary.textContent === '星石与导入详情',
+      ),
+    ).toBe(true)
+  },
+)
 it('keeps edits visible after cloud save failure without displaying success', async () => {
   mocks.training.mockResolvedValue(fiveSnapshot())
   mocks.presets.mockResolvedValue([savedPreset()])
@@ -378,8 +413,15 @@ it('shows missing training and real star slots without fabricated values, and re
     card.querySelectorAll('.yuanhub-star-slot strong')[2].textContent,
   ).toBe('空槽')
   expect(
-    Array.from(card.querySelectorAll('dd')).map((el) => el.textContent),
-  ).toEqual(['100', '未知', '17', '0'])
+    Object.fromEntries(
+      Array.from(card.querySelectorAll('.yuanhub-member-stats dl > div')).map(
+        (row) => [
+          row.querySelector('dt')?.textContent,
+          row.querySelector('dd')?.textContent,
+        ],
+      ),
+    ),
+  ).toEqual({ 等级: '100', 修为: '17', 攻击: '未知', 生命: '0' })
   expect(
     Array.from(
       card.querySelectorAll<HTMLInputElement>('input[type="radio"]'),
@@ -447,4 +489,49 @@ it('explains capacity and invalid loadout blockers next to the apply button', as
     '原命盘方案已不存在',
   )
   expect(applyButton.disabled).toBe(true)
+})
+
+it('uses catalog colors for both loadouts and marks only the imported scheme', async () => {
+  const training = fiveSnapshot()
+  training.operators[0].loadouts[0].discs.push('上游新增词条')
+  training.operators[1].loadouts = []
+  const saved = savedPreset()
+  const preset = {
+    ...saved,
+    members: saved.members.map((member, index) =>
+      index === 1 ? { ...member, loadoutId: null } : member,
+    ),
+  }
+  mocks.training.mockResolvedValue(training)
+  mocks.presets.mockResolvedValue([preset])
+  await open()
+  const cards = document.querySelectorAll('.yuanhub-member-card')
+  for (const [index, op] of training.operators.entries()) {
+    const rows = cards[index].querySelectorAll('.yuanhub-loadout-preview')
+    expect(rows).toHaveLength(2)
+    for (const [loadoutIndex, loadout] of op.loadouts.entries()) {
+      const chips = rows[loadoutIndex].querySelectorAll('.yuanhub-disc-effect')
+      expect(chips).toHaveLength(loadout.discs.length)
+      loadout.discs.forEach((name, i) => {
+        const color = OPERATORS[index].discs.find(
+          (disc) => disc.ot_name === name,
+        )?.color
+        expect(chips[i].getAttribute('data-color')).toBe(color ?? null)
+        expect(chips[i].textContent).toBe(name)
+      })
+      expect(rows[loadoutIndex].getAttribute('data-selected')).toBe(
+        String(loadout.id === preset.members[index].loadoutId),
+      )
+    }
+  }
+  expect(cards[1].querySelectorAll('.yuanhub-loadout-selected')).toHaveLength(0)
+  expect(cards[1].querySelectorAll('.yuanhub-loadout-empty')).toHaveLength(2)
+  expect(cards[1].textContent).toContain('未选择命盘')
+  expect(cards[1].textContent).toContain('暂无方案')
+  await act(async () => button('编辑阵容与命盘').click())
+  expect(
+    document.querySelectorAll(
+      '.yuanhub-loadout-option .yuanhub-disc-effect[data-color]',
+    ).length,
+  ).toBeGreaterThan(0)
 })

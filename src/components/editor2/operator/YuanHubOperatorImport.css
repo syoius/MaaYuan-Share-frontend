@@ -19,6 +19,52 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
   flex-shrink: 0;
   background: var(--matcher-surface);
 }
+.yuanhub-connection-status {
+  color: var(--matcher-text);
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--matcher-border);
+  border-radius: 6px;
+  background: var(--matcher-button-surface);
+}
+.yuanhub-account-field > label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.yuanhub-account-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.yuanhub-account-controls > .bp4-html-select,
+.yuanhub-account-controls > .bp4-callout {
+  flex: 1;
+  min-width: 0;
+}
+.yuanhub-account-controls > .bp4-button {
+  flex-shrink: 0;
+}
+.yuanhub-account-field .matcher-help,
+.yuanhub-team-section .matcher-help {
+  margin: 6px 0 0;
+}
+.yuanhub-import-dialog .yuanhub-members-toolbar {
+  justify-content: flex-start;
+  margin: 4px 0;
+}
+.yuanhub-members-toolbar > .bp4-button {
+  margin-left: auto;
+}
+.yuanhub-import-dialog .yuanhub-missing-attributes {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--matcher-border);
+  border-radius: 6px;
+  background: var(--matcher-button-surface);
+  color: var(--matcher-accent);
+  font-size: 12px;
+}
 .yuanhub-team-section {
   border-top: 1px solid var(--matcher-border);
   padding-top: 16px;
@@ -33,16 +79,57 @@ body .bp4-dialog.yuanhub-import-dialog .matcher-body > * {
 body .bp4-dialog.yuanhub-team-edit-dialog {
   width: min(960px, calc(100vw - 32px));
 }
+body .bp4-dialog.yuanhub-import-dialog:not(.yuanhub-team-edit-dialog) {
+  width: min(1440px, calc(100vw - 32px));
+}
 .yuanhub-team-members {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
+}
+.yuanhub-team-preview .yuanhub-star-slots {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (min-width: 900px) {
+  body
+    .bp4-dialog.yuanhub-import-dialog:not(.yuanhub-team-edit-dialog)
+    .yuanhub-team-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+  }
+  .yuanhub-team-body > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .yuanhub-team-body > .yuanhub-account-field,
+  .yuanhub-team-body > .yuanhub-team-section {
+    grid-column: auto;
+  }
+  .yuanhub-team-body > .yuanhub-account-field > label {
+    display: flex;
+    align-items: center;
+    min-height: 36px;
+  }
+  .yuanhub-team-section {
+    border-top: 0;
+    border-left: 1px solid var(--matcher-border);
+    padding: 0 0 0 16px;
+  }
+  .yuanhub-team-preview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .yuanhub-team-preview {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
 }
 .yuanhub-member-card {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 16px;
+  padding: 12px;
   border: 1px solid var(--matcher-border);
   border-radius: 10px;
   background: var(--matcher-surface);
@@ -50,11 +137,13 @@ body .bp4-dialog.yuanhub-team-edit-dialog {
 .yuanhub-member-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 .yuanhub-member-header > img {
   flex-shrink: 0;
+  width: 56px;
+  height: 56px;
 }
 .yuanhub-member-identity {
   flex: 1;
@@ -62,7 +151,8 @@ body .bp4-dialog.yuanhub-team-edit-dialog {
 }
 .yuanhub-member-identity > strong {
   display: block;
-  font-size: 20px;
+  font-size: 18px;
+  overflow-wrap: anywhere;
 }
 .yuanhub-member-stars {
   color: var(--matcher-accent);
@@ -70,27 +160,46 @@ body .bp4-dialog.yuanhub-team-edit-dialog {
 }
 .yuanhub-member-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px 10px;
-  margin: 0 0 16px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 8px;
+  margin-bottom: 14px;
 }
-.yuanhub-member-stats > div {
+.yuanhub-member-stats dl {
+  min-width: 0;
+  margin: 0;
+}
+.yuanhub-member-training {
+  padding-right: 8px;
+  border-right: 1px solid var(--matcher-border);
+}
+.yuanhub-member-panel {
+  border: 1px solid var(--matcher-border);
+  border-radius: 6px;
+  background: var(--matcher-button-surface);
+}
+.yuanhub-member-stats dl > div {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 4px;
-  padding: 6px 10px;
-  border: 1px solid var(--matcher-border);
-  border-radius: 6px;
+  gap: 2px 6px;
+  padding: 4px 0;
+}
+.yuanhub-member-panel > div {
+  margin: 0 6px;
+}
+.yuanhub-member-panel > div + div {
+  border-top: 1px solid var(--matcher-border);
 }
 .yuanhub-member-stats dt {
   color: var(--matcher-muted);
+  font-size: 12px;
 }
 .yuanhub-member-stats dd {
   margin: 0;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 .yuanhub-member-loadouts {
   min-width: 0;
@@ -134,7 +243,35 @@ body .bp4-dialog.yuanhub-team-edit-dialog {
   border: 1px solid var(--matcher-border);
   border-radius: 4px;
   font-size: 12px;
+  font-weight: 500;
+  background: var(--matcher-button-surface);
+  max-width: 100%;
   overflow-wrap: anywhere;
+}
+.yuanhub-disc-effect[data-color] {
+  --disc-bg-lightness: 95%;
+  --disc-text-lightness: 28%;
+  --disc-border-lightness: 75%;
+  background: hsl(var(--disc-hue, 35) 65% var(--disc-bg-lightness));
+  color: hsl(var(--disc-hue, 35) 42% var(--disc-text-lightness));
+  border-color: hsl(var(--disc-hue, 35) 45% var(--disc-border-lightness));
+}
+.yuanhub-disc-effect[data-color='金'] {
+  --disc-hue: 40;
+}
+.yuanhub-disc-effect[data-color='紫'] {
+  --disc-hue: 275;
+}
+.yuanhub-disc-effect[data-color='蓝'] {
+  --disc-hue: 210;
+}
+.yuanhub-disc-effect[data-color='橙'] {
+  --disc-hue: 25;
+}
+:is(.dark, .bp4-dark) .yuanhub-disc-effect[data-color] {
+  --disc-bg-lightness: 20%;
+  --disc-text-lightness: 88%;
+  --disc-border-lightness: 45%;
 }
 .yuanhub-clear-loadout {
   align-self: flex-start;
@@ -170,12 +307,12 @@ body .bp4-dialog.yuanhub-team-edit-dialog {
   font-size: 12px;
 }
 .yuanhub-member-details summary {
-  padding: 10px;
-  border-radius: 6px;
+  padding: 6px 0;
   cursor: pointer;
-  text-align: center;
-  background: var(--matcher-text);
-  color: var(--matcher-surface);
+  color: var(--matcher-muted);
+}
+.yuanhub-member-details summary:hover {
+  color: var(--matcher-accent);
 }
 .yuanhub-member-details p {
   margin: 8px 0 0;
@@ -205,9 +342,6 @@ body .bp4-dialog.yuanhub-team-edit-dialog {
   .yuanhub-team-members {
     grid-template-columns: minmax(0, 1fr);
   }
-  .yuanhub-member-card {
-    padding: 12px;
-  }
   .yuanhub-import-dialog .matcher-footer .matcher-actions {
     width: 100%;
     justify-content: flex-end;
@@ -220,9 +354,36 @@ body .bp4-dialog.yuanhub-team-edit-dialog {
   color: var(--matcher-danger);
 }
 .yuanhub-selected-loadout {
+  display: grid;
+  gap: 10px;
   margin-bottom: 12px;
 }
-.yuanhub-selected-loadout p {
-  margin: 4px 0 0;
+.yuanhub-loadout-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 52px) minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+  min-height: 48px;
+}
+.yuanhub-loadout-name {
   color: var(--matcher-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.yuanhub-loadout-name strong {
+  display: block;
+  font-weight: 500;
+}
+.yuanhub-loadout-preview[data-selected='true'] .yuanhub-loadout-name {
+  color: var(--matcher-accent);
+}
+.yuanhub-loadout-selected {
+  font-size: 10px;
+}
+.yuanhub-loadout-empty {
+  padding: 2px 8px;
+  border: 1px dashed var(--matcher-border);
+  border-radius: 4px;
+  color: var(--matcher-muted);
+  font-size: 12px;
 }

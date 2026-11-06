@@ -153,15 +153,14 @@ function ImportSession({
   const connectionContent = (
     <>
       {!editingToken ? (
-        <div className="matcher-label-row">
-          <strong>
+        <div className="matcher-label-row yuanhub-connection-status">
+          <span>
             {token === initialToken
               ? 'YuanHub 只读连接已保存'
               : 'YuanHub 只读连接已就绪'}
-          </strong>
+          </span>
           <Button
-            outlined
-            className="matcher-secondary"
+            minimal
             disabled={busy}
             onClick={() => {
               setEditingToken(true)
@@ -211,9 +210,28 @@ function ImportSession({
         </div>
       )}
       {connection && !editingToken && (
-        <div className="matcher-field">
-          <div className="matcher-label-row">
-            <label htmlFor={`${formId}-account`}>游戏账号</label>
+        <div className="matcher-field yuanhub-account-field">
+          <label htmlFor={`${formId}-account`}>游戏账号</label>
+          <div className="yuanhub-account-controls">
+            {connection.accounts.length ? (
+              <HTMLSelect
+                id={`${formId}-account`}
+                fill
+                value={accountId}
+                onChange={(e) => {
+                  setAccountId(e.currentTarget.value)
+                  void sync(e.currentTarget.value)
+                }}
+              >
+                {connection.accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} · {a.game}
+                  </option>
+                ))}
+              </HTMLSelect>
+            ) : (
+              <Callout>此连接没有游戏账号，请先在 YuanHub 添加账号。</Callout>
+            )}
             <Button
               outlined
               icon="refresh"
@@ -224,25 +242,6 @@ function ImportSession({
               刷新档案
             </Button>
           </div>
-          {connection.accounts.length ? (
-            <HTMLSelect
-              id={`${formId}-account`}
-              fill
-              value={accountId}
-              onChange={(e) => {
-                setAccountId(e.currentTarget.value)
-                void sync(e.currentTarget.value)
-              }}
-            >
-              {connection.accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name} · {a.game}
-                </option>
-              ))}
-            </HTMLSelect>
-          ) : (
-            <Callout>此连接没有游戏账号，请先在 YuanHub 添加账号。</Callout>
-          )}
           {snapshot && (
             <p className="matcher-help">
               {snapshot.operators.filter((op) => op.owned !== false).length}{' '}
