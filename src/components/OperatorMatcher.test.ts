@@ -70,7 +70,6 @@ vi.mock('../i18n/i18n', () => ({
 
 const initial: MatcherSettings = {
   enabled: true,
-  modes: ['ready'],
   token: 'test-token',
   snapshot: {
     connectionId: 'connection',
@@ -157,6 +156,25 @@ describe('automatic matcher sync', () => {
   afterEach(async () => {
     await act(async () => root.unmount())
     host.remove()
+  })
+
+  it('shows only settings and the enable switch, without status filters', async () => {
+    expect(
+      Array.from(
+        host.querySelectorAll('button'),
+        (button) => button.textContent,
+      ),
+    ).toEqual(['title'])
+    const enabled = host.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]',
+    )!
+    expect(enabled.checked).toBe(true)
+    await act(async () => enabled.click())
+    expect(current.enabled).toBe(false)
+    expect(host.querySelectorAll('button')).toHaveLength(1)
+    await act(async () => enabled.click())
+    expect(current.enabled).toBe(true)
+    expect(current.snapshot).toEqual(initial.snapshot)
   })
 
   it('refreshes the selected roster every time settings are opened', async () => {

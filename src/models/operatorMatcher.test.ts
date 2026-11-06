@@ -70,35 +70,20 @@ describe('YuanHub normalization', () => {
     ])
       expect(() => normalize({ ...payload({}), ...change })).toThrow()
   })
-  it('preserves explicit zero cultivation and keeps missing growth unknown', () => {
+  it('accepts ownership records without training data and ignores unused fields', () => {
     const data = normalize(
-      payload({ [a.id]: { level: 1, elite: 0, stars: null } }),
+      payload({ [a.id]: { level: 1, discs: null, panel: null } }),
     )
-    expect(data.operators[a.id]).toMatchObject({
-      owned: true,
-      level: 1,
-      elite: 0,
-      stars: undefined,
-    })
+    expect(data.operators[a.id]).toEqual({ id: a.id, owned: true })
     expect(
-      result(operation([{ name: a.name, requirements: { elite: 1 } }]), data)
-        .mode,
-    ).toBe('train')
+      normalize({ ...payload({}), operators: { [a.id]: {} } }).operators[a.id],
+    ).toEqual({ id: a.id, owned: undefined })
   })
-  it('uses only calculated panel values', () => {
-    for (const status of ['incomplete', 'unsupported', 'unavailable'])
-      expect(
-        normalize(
-          payload({ [a.id]: { panel: { status, attack: 9000, hp: 10000 } } }),
-        ).operators[a.id].attack,
-      ).toBeUndefined()
-    expect(
-      normalize(
-        payload({
-          [a.id]: { panel: { status: 'calculated', attack: 9000, hp: 10000 } },
-        }),
-      ).operators[a.id].attack,
-    ).toBe(9000)
+  it('rejects malformed ownership records', () => {
+    for (const entry of [null, [], { owned: 'true' }, { owned: 1 }])
+      expect(() =>
+        normalize({ ...payload({}), operators: { [a.id]: entry } }),
+      ).toThrow()
   })
 })
 
@@ -165,40 +150,44 @@ describe('five-person matching without support', () => {
     )
     expect(result(operation([a, a])).mode).toBe('blocked')
   })
-  it('compares independent level and cultivation and never infers Arknights elite stages', () => {
-    expect(
-      result(
-        operation([{ name: a.name, requirements: { level: 101, elite: 17 } }]),
-      ).mode,
-    ).toBe('train')
-    expect(
-      result(
-        operation([{ name: a.name, requirements: { level: 80, elite: 18 } }]),
-      ).mode,
-    ).toBe('train')
+  it.each([
+    { requirements: { level: 150, elite: 20 } },
+    { starLevel: 50, attack: 99999, hp: 99999 },
+    { discsSelected: [1, -2, 3] },
+    {
+      extensions: {
+        discs: { slots: [{ disc: 1, starStone: '天府', assistStar: '天相' }] },
+      },
+    },
+    { discStarStones: ['天府', '天府'], discAssistStars: ['天相'] },
+  ])('ignores training, stats and loadout requirements: %j', (requirements) => {
+    const owned = normalize({
+      ...payload({}),
+      operators: { [a.id]: { owned: true } },
+    })
+    const op = operation([
+      { name: a.name, ...requirements } as CopilotDocV1.Operator,
+    ])
+    expect(result(op, owned)).toEqual({ mode: 'ready', reasons: [] })
+    expect(getOperationMatchResult(op, owned, [a.id]).mode).toBe('blocked')
   })
-  it('only tests explicitly stated requirements and respects unrestricted operators', () => {
-    const owned = snapshot()
-    owned.operators[a.id].level = undefined
+  it('uses roster presence unless explicitly marked unowned', () => {
+    const owned = normalize({ ...payload({}), operators: { [a.id]: {} } })
     expect(result(operation([a]), owned).mode).toBe('ready')
+    owned.operators[a.id].owned = false
+    expect(result(operation([a]), owned).mode).toBe('blocked')
+  })
+  it('rejects missing formations, empty groups and unrecognized operators', () => {
+    expect(result(operation([])).mode).toBe('blocked')
+    expect(result(operation([a], [{ name: '空组', opers: [] }])).mode).toBe(
+      'blocked',
+    )
+    expect(result(operation([{ name: '未知密探' }])).mode).toBe('blocked')
     expect(
       result(
-        operation([
-          {
-            name: a.name,
-            unrestricted: true,
-            requirements: { level: 150 },
-          } as CopilotDocV1.Operator,
-        ]),
-        owned,
+        operation([], [{ name: '任选', opers: [{ name: '未知密探' }, a] }]),
       ).mode,
     ).toBe('ready')
-  })
-  it('marks absent formations and empty groups unknown', () => {
-    expect(result(operation([])).mode).toBe('unknown')
-    expect(result(operation([a], [{ name: '空组', opers: [] }])).mode).toBe(
-      'unknown',
-    )
   })
   it('separates game versions and allows shared operations', () => {
     expect(
@@ -211,66 +200,5 @@ describe('five-person matching without support', () => {
         metadata: { tags: ['代号鸢', '如鸢'] },
       } as Operation).mode,
     ).toBe('ready')
-  })
-  it('never joins separate destiny loadouts into an imaginary loadout', () => {
-    const owned = snapshot()
-    const names = a.discs.slice(0, 4).map((d) => d.ot_name)
-    owned.operators[a.id].discs = [
-      [names[0], names[2], names[3]],
-      [names[1], names[2], names[3]],
-    ]
-    const required = operation([
-      { name: a.name, discsSelected: [1, 2] } as CopilotDocV1.Operator,
-    ])
-    expect(result(required, owned).mode).toBe('train')
-    owned.operators[a.id].discs.push([names[0], names[1], names[2]])
-    expect(result(required, owned).mode).toBe('ready')
-  })
-  it('requires complete evidence for forbidden discs and duplicate star requirements', () => {
-    const owned = snapshot()
-    owned.operators[a.id].discs = [[a.discs[0].ot_name]]
-    expect(
-      result(
-        operation([
-          { name: a.name, discsSelected: [-2] } as CopilotDocV1.Operator,
-        ]),
-        owned,
-      ).mode,
-    ).toBe('unknown')
-    owned.operators[a.id].mainStars = ['天府']
-    expect(
-      result(
-        operation([
-          {
-            name: a.name,
-            discStarStones: ['天府', '天府'],
-          } as CopilotDocV1.Operator,
-        ]),
-        owned,
-      ).mode,
-    ).toBe('unknown')
-  })
-  it('does not pass attack/health requirements using missing or stale panels', () => {
-    const owned = normalize(
-      payload({
-        [a.id]: {
-          star_level: 31,
-          level: 100,
-          elite: 17,
-          combat_stats: {
-            source: 'scan',
-            observed_status: 'valid',
-            observed_attack: 9000,
-            manual_attack: 9000,
-          },
-        },
-      }),
-    )
-    expect(
-      result(
-        operation([{ name: a.name, attack: 8000 } as CopilotDocV1.Operator]),
-        owned,
-      ).mode,
-    ).toBe('unknown')
   })
 })

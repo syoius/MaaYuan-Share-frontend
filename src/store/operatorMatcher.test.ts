@@ -113,6 +113,34 @@ describe('matcher browser storage', () => {
       }),
     ).toMatchObject({ token, excludedByAccount: { valid: ['operator-a'] } })
   })
+  it('ignores old status filters and keeps connection, roster, switch and exclusions', () => {
+    const snapshot = {
+      connectionId: 'connection',
+      accountId: 'account',
+      accountName: '测试',
+      game: '如鸢',
+      syncedAt: new Date().toISOString(),
+      operators: { a: { id: 'a', owned: true, level: 1, discs: [] } },
+    }
+    const settings = {
+      enabled: true,
+      token,
+      snapshot,
+      excludedByAccount: { [getMatcherAccountKey(snapshot)]: ['a'] },
+    }
+    for (const modes of [undefined, [], ['blocked'], ['train', 'unknown']]) {
+      const restored = parseMatcherSettings({ ...settings, modes })
+      expect(restored).toEqual(settings)
+      expect(restored).not.toHaveProperty('modes')
+    }
+    expect(
+      parseMatcherSettings({
+        ...settings,
+        snapshot: { ...snapshot, operators: { a: { id: 'a', owned: 'true' } } },
+      }),
+    ).toEqual(emptyMatcherSettings())
+  })
+
   it('persists a connection code without a roster and restores it on remount', async () => {
     await mount('owner')
     await act(async () =>
@@ -148,7 +176,6 @@ describe('matcher browser storage', () => {
       matcher.setSettings({
         ...emptyMatcherSettings(),
         token,
-        modes: ['ready'],
         snapshot: {
           connectionId: 'connection',
           accountId: 'account',

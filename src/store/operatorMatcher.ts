@@ -3,8 +3,6 @@ import { atomWithStorage } from 'jotai/utils'
 import { useMemo } from 'react'
 
 import {
-  MATCH_MODES,
-  MatchMode,
   MatcherSnapshot,
   OperatorMatcherFilter,
   asRecord,
@@ -13,14 +11,12 @@ import { authAtom } from './auth'
 
 export interface MatcherSettings {
   enabled: boolean
-  modes: MatchMode[]
   token?: string
   snapshot?: MatcherSnapshot
   excludedByAccount?: Record<string, string[]>
 }
 export const emptyMatcherSettings = (): MatcherSettings => ({
   enabled: false,
-  modes: ['ready', 'train', 'unknown'],
   excludedByAccount: {},
 })
 
@@ -42,18 +38,10 @@ export function parseMatcherSettings(value: unknown): MatcherSettings {
     )
       excludedByAccount[account] = ids
   }
-  if (
-    !data ||
-    typeof data.enabled !== 'boolean' ||
-    !Array.isArray(data.modes) ||
-    !data.modes.length ||
-    data.modes.some((m) => !MATCH_MODES.includes(m))
-  )
-    return emptyMatcherSettings()
+  if (!data || typeof data.enabled !== 'boolean') return emptyMatcherSettings()
   if (!snapshot)
     return {
       enabled: false,
-      modes: data.modes as MatchMode[],
       token,
       excludedByAccount,
     }
@@ -69,23 +57,7 @@ export function parseMatcherSettings(value: unknown): MatcherSettings {
       return (
         !op ||
         op.id !== id ||
-        (op.owned !== undefined && typeof op.owned !== 'boolean') ||
-        ['level', 'elite', 'stars', 'attack', 'hp'].some(
-          (k) =>
-            op[k] !== undefined &&
-            (typeof op[k] !== 'number' ||
-              !Number.isSafeInteger(op[k]) ||
-              (op[k] as number) < 0),
-        ) ||
-        !['mainStars', 'assistStars'].every(
-          (k) =>
-            Array.isArray(op[k]) &&
-            (op[k] as unknown[]).every((v) => typeof v === 'string'),
-        ) ||
-        !Array.isArray(op.discs) ||
-        op.discs.some(
-          (d) => !Array.isArray(d) || d.some((v) => typeof v !== 'string'),
-        )
+        (op.owned !== undefined && typeof op.owned !== 'boolean')
       )
     })
   )
@@ -93,7 +65,6 @@ export function parseMatcherSettings(value: unknown): MatcherSettings {
   return {
     token,
     enabled: data.enabled,
-    modes: data.modes as MatchMode[],
     snapshot: snapshot as unknown as MatcherSnapshot,
     excludedByAccount,
   }
@@ -141,7 +112,6 @@ export function useOperatorMatcher() {
       userId && settings.enabled && settings.snapshot
         ? {
             snapshot: settings.snapshot,
-            modes: settings.modes,
             excludedOperatorIds:
               settings.excludedByAccount?.[
                 getMatcherAccountKey(settings.snapshot)

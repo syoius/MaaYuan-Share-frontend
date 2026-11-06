@@ -173,10 +173,7 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
           )
         : operations
     ).filter((op) => {
-      if (
-        operatorMatcher &&
-        !operatorMatcher.modes.includes(matchResults.get(op.id)!.mode)
-      )
+      if (operatorMatcher && matchResults.get(op.id)!.mode !== 'ready')
         return false
       if (shouldHideInactiveLevels) {
         // ponytail: linear matching is enough for one page; use a stage map if level data grows.

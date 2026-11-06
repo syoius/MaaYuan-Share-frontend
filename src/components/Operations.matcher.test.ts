@@ -10,9 +10,7 @@ const state = vi.hoisted(() => ({
 }))
 vi.mock('../store/operatorMatcher', () => ({
   useOperatorMatcher: () => ({
-    filter: state.game
-      ? { snapshot: { game: state.game }, modes: ['ready'] }
-      : undefined,
+    filter: state.game ? { snapshot: { game: state.game } } : undefined,
   }),
 }))
 vi.mock('../i18n/i18n', () => ({

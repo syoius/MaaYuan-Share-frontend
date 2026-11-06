@@ -16,7 +16,6 @@ import { readYuanHubAccounts, readYuanHubSnapshot } from '../apis/yuanhub'
 import { useTranslation } from '../i18n/i18n'
 import { OPERATORS } from '../models/generated/operators.json'
 import {
-  MATCH_MODES,
   OperationMatchResult,
   YuanHubAccounts,
 } from '../models/operatorMatcher'
@@ -242,29 +241,6 @@ export function OperatorMatcher({
               setSettings((current) => ({ ...current, enabled }))
             }}
           />
-          {settings.enabled &&
-            MATCH_MODES.map((mode) => (
-              <Button
-                key={mode}
-                small
-                minimal
-                active={settings.modes.includes(mode)}
-                aria-pressed={settings.modes.includes(mode)}
-                disabled={
-                  settings.modes.length === 1 && settings.modes[0] === mode
-                }
-                onClick={() =>
-                  setSettings((current) => ({
-                    ...current,
-                    modes: current.modes.includes(mode)
-                      ? current.modes.filter((m) => m !== mode)
-                      : [...current.modes, mode],
-                  }))
-                }
-              >
-                {t[mode]}
-              </Button>
-            ))}
         </>
       )}
       <Dialog
