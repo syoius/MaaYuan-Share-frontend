@@ -14,6 +14,7 @@ import { OperationSetCard } from 'components/OperationSetCard'
 import { withSuspensable } from 'components/Suspensable'
 
 import { useTranslation } from '../../i18n/i18n'
+import { SearchError } from '../SearchError'
 
 interface AdminOperationSetListProps extends UseOperationSetsParams {}
 
@@ -22,13 +23,17 @@ export const AdminOperationSetList: ComponentType<AdminOperationSetListProps> =
     const t = useTranslation()
     const refresh = useRefreshOperationSets()
 
-    const { operationSets, isReachingEnd, isValidating, setSize } =
-      useOperationSetSearch({
-        ...params,
-        suspense: true,
-      })
-
-    if (!operationSets) throw new Error('unreachable')
+    const {
+      operationSets,
+      isReachingEnd,
+      isValidating,
+      setSize,
+      error,
+      retry,
+    } = useOperationSetSearch({
+      ...params,
+      suspense: false,
+    })
 
     return (
       <>
@@ -62,14 +67,18 @@ export const AdminOperationSetList: ComponentType<AdminOperationSetListProps> =
           </div>
         ))}
 
-        {isReachingEnd && operationSets.length === 0 && (
+        {error && (
+          <SearchError error={error} retry={retry} loading={isValidating} />
+        )}
+
+        {!error && isReachingEnd && operationSets.length === 0 && (
           <NonIdealState
             icon="slash"
             title={t.components.OperationSetList.no_job_sets_found}
           />
         )}
 
-        {!isReachingEnd && (
+        {!error && !isReachingEnd && (
           <Button
             loading={isValidating}
             text={t.components.OperationSetList.load_more}

@@ -17,6 +17,8 @@ import { OpRatingType, Operation, OperationMetadata } from "models/operation";
 import { ShortCodeContent, parseShortCode } from "models/shortCode";
 import { OperationApi, readRawApiResponse } from "utils/maa-copilot-client";
 import { useSWRRefresh } from "utils/swr";
+import { SearchTimeoutError } from "utils/error";
+import { withSearchTimeout } from "utils/search-timeout";
 
 export type OrderBy = "views" | "hot" | "id";
 
@@ -60,6 +62,7 @@ export function useOperations({
     error,
     data: pages,
     setSize,
+    mutate,
     isValidating,
   } = useSWRInfinite(
     (pageIndex, previousPage: { hasNext: boolean }) => {
@@ -118,15 +121,12 @@ export function useOperations({
 
       // 使用 Raw 接口拿到未加工 JSON，确保 metadata 不丢失
       const api = new OperationApi({ sendToken: "optional", requireData: true });
-      const rawResponse = await api.queriesCopilotRaw(req);
-      const rawJson = await readRawApiResponse<{
-        data?: {
-          data?: any[];
-          has_next?: boolean;
-          page?: number;
-          total?: number;
-        };
-      }>(rawResponse.raw);
+      const rawJson = await withSearchTimeout(async (signal) => {
+        const rawResponse = await api.queriesCopilotRaw(req, { signal });
+        return readRawApiResponse<{
+          data?: { data?: any[]; has_next?: boolean; page?: number; total?: number };
+        }>(rawResponse.raw);
+      });
       const payload = rawJson.data!;
 
       let parsedOperations: Operation[] = (payload.data ?? []).map((item) => {
@@ -184,6 +184,7 @@ export function useOperations({
     },
     {
       suspense,
+      shouldRetryOnError: (error) => !(error instanceof SearchTimeoutError),
       focusThrottleInterval: 1000 * 60 * 30,
       revalidateFirstPage,
     },
@@ -211,6 +212,7 @@ export function useOperations({
 
   return {
     error,
+    retry: () => mutate(),
     operations: filteredOperations,
     total: filteredTotal,
     setSize,

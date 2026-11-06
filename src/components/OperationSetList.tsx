@@ -11,6 +11,7 @@ import { neoLayoutAtom } from 'store/pref'
 
 import { useTranslation } from '../i18n/i18n'
 import { NeoOperationSetCard, OperationSetCard } from './OperationSetCard'
+import { SearchError } from './SearchError'
 import { withSuspensable } from './Suspensable'
 
 interface OperationSetListProps extends UseOperationSetsParams {
@@ -23,14 +24,18 @@ export const OperationSetList: ComponentType<OperationSetListProps> =
       const t = useTranslation()
       const neoLayout = useAtomValue(neoLayoutAtom)
 
-      const { operationSets, total, setSize, isValidating, isReachingEnd } =
-        useOperationSetSearch({
-          ...params,
-          suspense: true,
-        })
-
-      // make TS happy: we got Suspense out there
-      if (!operationSets) throw new Error('unreachable')
+      const {
+        operationSets,
+        total,
+        setSize,
+        isValidating,
+        isReachingEnd,
+        error,
+        retry,
+      } = useOperationSetSearch({
+        ...params,
+        suspense: false,
+      })
 
       useEffect(() => {
         onUpdate?.({ total })
@@ -61,7 +66,11 @@ export const OperationSetList: ComponentType<OperationSetListProps> =
         <>
           {items}
 
-          {isReachingEnd && operationSets.length === 0 && (
+          {error && (
+            <SearchError error={error} retry={retry} loading={isValidating} />
+          )}
+
+          {!error && isReachingEnd && operationSets.length === 0 && (
             <NonIdealState
               icon="slash"
               title={t.components.OperationSetList.no_job_sets_found}
@@ -69,13 +78,13 @@ export const OperationSetList: ComponentType<OperationSetListProps> =
             />
           )}
 
-          {isReachingEnd && operationSets.length !== 0 && (
+          {!error && isReachingEnd && operationSets.length !== 0 && (
             <div className="mt-8 w-full tracking-wider text-center select-none text-slate-500">
               {t.components.OperationSetList.reached_bottom}
             </div>
           )}
 
-          {!isReachingEnd && (
+          {!error && !isReachingEnd && (
             <Button
               loading={isValidating}
               text={t.components.OperationSetList.load_more}

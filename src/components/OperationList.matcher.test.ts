@@ -10,13 +10,18 @@ import { OperationList } from './OperationList'
 const state = vi.hoisted(() => ({
   operations: [] as Operation[],
   isReachingEnd: true,
+  error: undefined as Error | undefined,
+  isValidating: true,
+  retry: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock('apis/operation', () => ({
   useOperations: () => ({
     operations: state.operations,
     total: state.operations.length,
     isReachingEnd: state.isReachingEnd,
-    isValidating: true,
+    isValidating: state.isValidating,
+    error: state.error,
+    retry: state.retry,
   }),
 }))
 vi.mock('apis/level', () => ({ useLevels: () => ({ data: [] }) }))
@@ -32,9 +37,11 @@ vi.mock('./operation-set/AddToOperationSet', () => ({
   AddToOperationSetButton: () => null,
 }))
 vi.mock('../i18n/i18n', () => ({
+  i18n: { utils: { error: { unknown_error: '未知错误' } } },
   useTranslation: () => ({
     components: {
-      OperationList: { load_more: '加载更多' },
+      OperationList: { load_more: '加载更多', no_jobs_found: '没有作业' },
+      Suspensable: { loadFailed: '加载失败', retry: '重试' },
       OperatorMatcher: {
         more_hint: '加载更多可继续查找匹配作业。',
       },
@@ -47,6 +54,9 @@ let root: ReturnType<typeof createRoot>
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   state.isReachingEnd = true
+  state.error = undefined
+  state.isValidating = true
+  state.retry.mockClear()
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
@@ -108,4 +118,27 @@ it('filters by ownership and exclusions only, and restores all jobs when disable
   state.isReachingEnd = true
   await render(filter)
   expect(host.querySelector('p')).toBeNull()
+})
+
+it('shows a retryable error without replacing loaded cards or calling it an empty result', async () => {
+  state.operations = [{ id: 12345, parsedContent: {} } as Operation]
+  state.error = new Error('搜索请求超时，请重试')
+  state.isValidating = false
+  await act(async () => root.render(createElement(OperationList)))
+  expect(host.querySelector('[data-operation-id="12345"]')).not.toBeNull()
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain(
+    '搜索请求超时，请重试',
+  )
+  const retry = Array.from(host.querySelectorAll('button')).find(
+    (button) => button.textContent === '重试',
+  )!
+  await act(async () => retry.click())
+  expect(state.retry).toHaveBeenCalledTimes(1)
+  state.operations = []
+  await act(async () => root.render(createElement(OperationList)))
+  expect(host.textContent).not.toContain('没有作业')
+  state.error = undefined
+  await act(async () => root.render(createElement(OperationList)))
+  expect(host.querySelector('[role="alert"]')).toBeNull()
+  expect(host.textContent).toContain('没有作业')
 })

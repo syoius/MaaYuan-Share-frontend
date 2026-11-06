@@ -1,7 +1,7 @@
 import { useAtomValue } from "jotai";
 import { noop } from "lodash-es";
 import {
-  CopilotSetPageRes,
+  PagedDTOCopilotSetListRes,
   CopilotSetQuery,
   CopilotSetStatus,
   CopilotSetUpdateReq,
@@ -11,6 +11,8 @@ import useSWRInfinite from "swr/infinite";
 
 import { OperationSetApi } from "utils/maa-copilot-client";
 import { useSWRRefresh } from "utils/swr";
+import { SearchTimeoutError } from "utils/error";
+import { withSearchTimeout } from "utils/search-timeout";
 
 import { parseShortCode } from "../models/shortCode";
 import { authAtom } from "../store/auth";
@@ -36,9 +38,10 @@ export function useOperationSets({
     data: pages,
     error,
     setSize,
+    mutate,
     isValidating,
   } = useSWRInfinite(
-    (pageIndex, previousPage: CopilotSetPageRes) => {
+    (pageIndex, previousPage: PagedDTOCopilotSetListRes) => {
       if (disabled) {
         return null;
       }
@@ -52,30 +55,34 @@ export function useOperationSets({
           limit: 50,
           page: pageIndex + 1,
           keyword,
+          onlyFollowing: false,
+          desc: true,
           creatorId: creatorId === "me" ? auth.userId : creatorId,
         } satisfies CopilotSetQuery,
       ];
     },
-    async ([, req]) => {
+    async ([, req]) => withSearchTimeout(async (signal) => {
       const res = await new OperationSetApi({
         sendToken: "optional", // 如果有 token 即可获取到私有的作业集
         requireData: true,
-      }).querySets({ copilotSetQuery: req });
-      return res.data;
-    },
+      }).querySets({ copilotSetQuery: req }, { signal });
+      return res.data!;
+    }),
     {
       suspense,
+      shouldRetryOnError: (error) => !(error instanceof SearchTimeoutError),
       focusThrottleInterval: 1000 * 60 * 30,
     },
   );
 
   const isReachingEnd = !!pages?.some((page) => !page.hasNext);
   const total = pages?.[0]?.total ?? 0;
-  const operationSets = pages?.map((page) => page.data).flat();
+  const operationSets = pages?.map((page) => page.data).flat() ?? [];
 
   return {
     operationSets,
     total,
+    retry: () => mutate(),
     error,
     setSize,
     isValidating,
@@ -98,9 +105,6 @@ export function useOperationSetSearch({
   disabled,
   ...params
 }: UseOperationSetsParams) {
-  if (!suspense) {
-    throw new Error("useOperationSetSearch must be used with suspense");
-  }
   if (disabled) {
     throw new Error("useOperationSetSearch cannot be disabled");
   }
@@ -115,7 +119,8 @@ export function useOperationSetSearch({
     }
   }
 
-  const { data: operationSet } = useOperationSet({ id, suspense });
+  const detailResponse = useOperationSet({ id, suspense });
+  const operationSet = detailResponse.data;
 
   const listResponse = useOperationSets({
     keyword,
@@ -128,14 +133,13 @@ export function useOperationSetSearch({
 
   if (id) {
     return {
-      operationSets: [operationSet],
+      operationSets: operationSet ? [operationSet] : [],
       total: operationSet ? 1 : 0,
-      isReachingEnd: true,
+      isReachingEnd: !!operationSet,
       setSize: noop,
-
-      // these are fixed values in suspense mode
-      error: undefined,
-      isValidating: false,
+      retry: () => detailResponse.mutate(),
+      error: detailResponse.error,
+      isValidating: detailResponse.isValidating,
     };
   }
 
@@ -148,7 +152,10 @@ interface UseOperationSetParams {
 }
 
 export function useOperationSet({ id, suspense }: UseOperationSetParams) {
-  return useSWR(id ? ["operationSet", id] : null, () => getOperationSet({ id: id! }), { suspense });
+  return useSWR(id ? ["operationSet", id] : null, () => getOperationSet({ id: id! }), {
+    suspense,
+    shouldRetryOnError: (error) => !(error instanceof SearchTimeoutError),
+  });
 }
 
 export function useRefreshOperationSet() {
@@ -157,11 +164,13 @@ export function useRefreshOperationSet() {
 }
 
 export async function getOperationSet(req: { id: number }) {
-  const res = await new OperationSetApi({
-    sendToken: "optional", // 如果有 token 会用来获取用户是否点赞
-    requireData: true,
-  }).getSet(req);
-  return res.data;
+  return withSearchTimeout(async (signal) => {
+    const res = await new OperationSetApi({
+      sendToken: "optional",
+      requireData: true,
+    }).getSet(req, { signal });
+    return res.data!;
+  });
 }
 
 export async function createOperationSet(req: {

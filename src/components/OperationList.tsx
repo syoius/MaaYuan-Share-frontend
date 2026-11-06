@@ -29,6 +29,7 @@ import {
   getOperationMatchResult,
 } from '../models/operatorMatcher'
 import { NeoOperationCard, OperationCard } from './OperationCard'
+import { SearchError } from './SearchError'
 import { withSuspensable } from './Suspensable'
 import { AddToOperationSetButton } from './operation-set/AddToOperationSet'
 
@@ -75,14 +76,18 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
     const { data: levels, isLoading: levelsLoading } = useLevels()
     const [levelTimeVersion, setLevelTimeVersion] = useState(0)
 
-    const { operations, total, setSize, isValidating, isReachingEnd, error } =
-      useOperations({
-        ...params,
-        suspense: true,
-      })
-
-    // make TS happy: we got Suspense out there
-    if (!operations) throw new Error('unreachable')
+    const {
+      operations,
+      total,
+      setSize,
+      isValidating,
+      isReachingEnd,
+      error,
+      retry,
+    } = useOperations({
+      ...params,
+      suspense: false,
+    })
 
     const matchResults = useMemo(
       () =>
@@ -229,8 +234,7 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
 
     useEffect(() => {
       const pageSize = params.limit ?? 50
-      if (!shouldHideInactiveLevels && !operatorMatcher)
-        return
+      if (!shouldHideInactiveLevels && !operatorMatcher) return
       if (!pageSize || displayedOperations.length >= pageSize) return
       if (isReachingEnd || isValidating || error) return
       if (operatorMatcher && autoLoads.current >= 5) return
@@ -317,7 +321,11 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
 
         {items}
 
-        {isReachingEnd && displayedOperations.length === 0 && (
+        {error && (
+          <SearchError error={error} retry={retry} loading={isValidating} />
+        )}
+
+        {!error && isReachingEnd && displayedOperations.length === 0 && (
           <NonIdealState
             icon="slash"
             title={t.components.OperationList.no_jobs_found}
@@ -325,13 +333,13 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
           />
         )}
 
-        {isReachingEnd && displayedOperations.length !== 0 && (
+        {!error && isReachingEnd && displayedOperations.length !== 0 && (
           <div className="mt-8 w-full tracking-wider text-center select-none text-slate-500">
             {t.components.OperationList.reached_bottom}
           </div>
         )}
 
-        {!isReachingEnd && (
+        {!error && !isReachingEnd && (
           <>
             {operatorMatcher && (
               <p className="mt-4 mb-0 text-center text-sm opacity-75">

@@ -40,3 +40,9 @@ export class NetworkError extends Error {
 export class ApiError extends Error {
   message: string = this.message || i18n.utils.error.api_error;
 }
+
+export class SearchTimeoutError extends Error {
+  constructor() {
+    super(i18n.utils.error.search_timeout);
+  }
+}
