@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { authAtom } from './auth'
 import {
   emptyMatcherSettings,
+  getMatcherAccountKey,
   parseMatcherSettings,
   useOperatorMatcher,
 } from './operatorMatcher'
@@ -46,6 +47,72 @@ afterEach(async () => {
 })
 
 describe('matcher browser storage', () => {
+  it('isolates exclusions by connection, game account and site user and restores them after refresh', async () => {
+    const snapshot = {
+      connectionId: 'connection',
+      accountId: 'account',
+      accountName: '测试',
+      game: '代号鸢',
+      syncedAt: new Date().toISOString(),
+      operators: {},
+    }
+    const store = await mount('owner')
+    await act(async () =>
+      matcher.setSettings({
+        ...emptyMatcherSettings(),
+        enabled: true,
+        token,
+        snapshot,
+        excludedByAccount: { [getMatcherAccountKey(snapshot)]: ['operator-a'] },
+      }),
+    )
+    expect(matcher.filter?.excludedOperatorIds).toEqual(['operator-a'])
+    for (const change of [
+      { accountId: 'another-account' },
+      { game: '如鸢' },
+      { connectionId: 'another-connection' },
+    ]) {
+      await act(async () =>
+        matcher.setSettings((current) => ({
+          ...current,
+          snapshot: { ...snapshot, ...change },
+        })),
+      )
+      expect(matcher.filter?.excludedOperatorIds).toEqual([])
+    }
+    await act(async () =>
+      matcher.setSettings((current) => ({ ...current, snapshot })),
+    )
+    expect(matcher.filter?.excludedOperatorIds).toEqual(['operator-a'])
+    await act(async () => store.set(authAtom, { userId: 'other' }))
+    expect(matcher.settings.excludedByAccount).toEqual({})
+    await act(async () => root.unmount())
+    await mount('owner')
+    expect(matcher.filter?.excludedOperatorIds).toEqual(['operator-a'])
+    await act(async () => matcher.setSettings(emptyMatcherSettings()))
+    expect(
+      JSON.parse(localStorage.getItem(key('owner'))!).excludedByAccount,
+    ).toEqual({})
+  })
+
+  it('restores old settings and rejects malformed exclusion lists', () => {
+    expect(
+      parseMatcherSettings({ enabled: false, modes: ['ready'], token })
+        .excludedByAccount,
+    ).toEqual({})
+    expect(
+      parseMatcherSettings({
+        ...emptyMatcherSettings(),
+        token,
+        excludedByAccount: {
+          valid: ['operator-a'],
+          number: [1],
+          empty: [''],
+          object: {},
+        },
+      }),
+    ).toMatchObject({ token, excludedByAccount: { valid: ['operator-a'] } })
+  })
   it('persists a connection code without a roster and restores it on remount', async () => {
     await mount('owner')
     await act(async () =>

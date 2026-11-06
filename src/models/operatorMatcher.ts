@@ -29,6 +29,7 @@ export interface MatcherSnapshot {
 export interface OperatorMatcherFilter {
   snapshot: MatcherSnapshot
   modes: MatchMode[]
+  excludedOperatorIds?: string[]
 }
 export interface OperationMatchResult {
   mode: MatchMode
@@ -143,6 +144,7 @@ const localByName = new Map(OPERATORS.map((op) => [op.name, op]))
 function evaluateOperator(
   requirement: CopilotDocV1.Operator,
   snapshot: MatcherSnapshot,
+  excludedOperatorIds: readonly string[],
 ) {
   const local = localByName.get(requirement.name)
   const owned = local && snapshot.operators[local.id]
@@ -153,6 +155,8 @@ function evaluateOperator(
   })
   if (!local)
     return result('unknown', [`${requirement.name}：本站目录无法识别`])
+  if (excludedOperatorIds.includes(local.id))
+    return result('blocked', [`${requirement.name}：已设为不使用`])
   if (!owned || owned.owned === false)
     return result('blocked', [`${requirement.name}：档案未收录或标记未拥有`])
   const raw = requirement as CopilotDocV1.Operator & {
@@ -249,6 +253,7 @@ function evaluateOperator(
 export function getOperationMatchResult(
   operation: Operation,
   snapshot: MatcherSnapshot,
+  excludedOperatorIds: readonly string[] = [],
 ): OperationMatchResult {
   const tags = operation.metadata?.tags ?? []
   const games = tags.filter((t) => t === '如鸢' || t === '代号鸢')
@@ -267,7 +272,7 @@ export function getOperationMatchResult(
   if (!slots.length || slots.some((s) => !s.length))
     return { mode: 'unknown', reasons: ['作业未填写完整阵容'] }
   const candidates = slots.map((slot) =>
-    slot.map((op) => evaluateOperator(op, snapshot)),
+    slot.map((op) => evaluateOperator(op, snapshot, excludedOperatorIds)),
   )
 
   // 二分匹配：每个密探只占一个位置，允许组间回退重选，避免贪心误判。

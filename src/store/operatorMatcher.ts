@@ -16,17 +16,32 @@ export interface MatcherSettings {
   modes: MatchMode[]
   token?: string
   snapshot?: MatcherSnapshot
+  excludedByAccount?: Record<string, string[]>
 }
 export const emptyMatcherSettings = (): MatcherSettings => ({
   enabled: false,
   modes: ['ready', 'train', 'unknown'],
+  excludedByAccount: {},
 })
+
+export const getMatcherAccountKey = (snapshot: MatcherSnapshot) =>
+  JSON.stringify([snapshot.connectionId, snapshot.accountId, snapshot.game])
 
 export function parseMatcherSettings(value: unknown): MatcherSettings {
   const data = asRecord(value)
   const token = typeof data?.token === 'string' ? data.token : undefined
   const snapshot = asRecord(data?.snapshot)
   const operators = asRecord(snapshot?.operators)
+  const excludedByAccount: Record<string, string[]> = {}
+  for (const [account, ids] of Object.entries(
+    asRecord(data?.excludedByAccount) ?? {},
+  )) {
+    if (
+      Array.isArray(ids) &&
+      ids.every((id) => typeof id === 'string' && id.length > 0)
+    )
+      excludedByAccount[account] = ids
+  }
   if (
     !data ||
     typeof data.enabled !== 'boolean' ||
@@ -36,7 +51,12 @@ export function parseMatcherSettings(value: unknown): MatcherSettings {
   )
     return emptyMatcherSettings()
   if (!snapshot)
-    return { enabled: false, modes: data.modes as MatchMode[], token }
+    return {
+      enabled: false,
+      modes: data.modes as MatchMode[],
+      token,
+      excludedByAccount,
+    }
   if (
     !operators ||
     !['如鸢', '代号鸢'].includes(String(snapshot.game)) ||
@@ -75,6 +95,7 @@ export function parseMatcherSettings(value: unknown): MatcherSettings {
     enabled: data.enabled,
     modes: data.modes as MatchMode[],
     snapshot: snapshot as unknown as MatcherSnapshot,
+    excludedByAccount,
   }
 }
 
@@ -118,7 +139,14 @@ export function useOperatorMatcher() {
   const filter = useMemo<OperatorMatcherFilter | undefined>(
     () =>
       userId && settings.enabled && settings.snapshot
-        ? { snapshot: settings.snapshot, modes: settings.modes }
+        ? {
+            snapshot: settings.snapshot,
+            modes: settings.modes,
+            excludedOperatorIds:
+              settings.excludedByAccount?.[
+                getMatcherAccountKey(settings.snapshot)
+              ] ?? [],
+          }
         : undefined,
     [userId, settings],
   )

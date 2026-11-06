@@ -90,7 +90,11 @@ export const OperationList: ComponentType<OperationListProps> = withSuspensable(
           operations.map((operation) => [
             operation.id,
             operatorMatcher
-              ? getOperationMatchResult(operation, operatorMatcher.snapshot)
+              ? getOperationMatchResult(
+                  operation,
+                  operatorMatcher.snapshot,
+                  operatorMatcher.excludedOperatorIds,
+                )
               : undefined,
           ]),
         ),

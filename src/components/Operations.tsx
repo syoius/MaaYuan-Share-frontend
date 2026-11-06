@@ -14,7 +14,7 @@ import clsx from 'clsx'
 import { useAtom, useAtomValue } from 'jotai'
 import { debounce } from 'lodash-es'
 import { MaaUserInfo } from 'maa-copilot-client'
-import { ComponentType, useMemo, useState } from 'react'
+import { ComponentType, useEffect, useMemo, useState } from 'react'
 
 import { CardTitle } from 'components/CardTitle'
 import { OperationList } from 'components/OperationList'
@@ -79,6 +79,10 @@ export const Operations: ComponentType = withSuspensable(() => {
   const [selectedStageId, setSelectedStageId] = useState<string>('')
   // tags 多选 AND
   const [tags, setTags] = useState<string[]>([])
+  const matcherGame = matcher.filter?.snapshot.game
+  useEffect(() => {
+    if (matcherGame) setTags(mapQuickPresetToTags(matcherGame))
+  }, [matcherGame])
 
   return (
     <>

@@ -103,6 +103,42 @@ describe('YuanHub normalization', () => {
 })
 
 describe('five-person matching without support', () => {
+  it('excludes owned operators even without growth requirements and preserves the roster', () => {
+    const owned = snapshot()
+    const original = structuredClone(owned)
+    const op = operation([
+      { name: a.name, unrestricted: true } as CopilotDocV1.Operator,
+    ])
+    const excluded = getOperationMatchResult(op, owned, [a.id])
+    expect(excluded.mode).toBe('blocked')
+    expect(excluded.reasons).toContain(`${a.name}：已设为不使用`)
+    expect(owned).toEqual(original)
+    expect(getOperationMatchResult(op, owned, []).mode).toBe('ready')
+  })
+  it('keeps alternative formations and never reuses a remaining candidate after exclusion', () => {
+    const owned = snapshot()
+    expect(
+      getOperationMatchResult(
+        operation([], [{ name: '任选', opers: [a, b] }]),
+        owned,
+        [a.id],
+      ).mode,
+    ).toBe('ready')
+    expect(
+      getOperationMatchResult(
+        operation([], [{ name: '任选', opers: [a, b] }]),
+        owned,
+        [a.id, b.id],
+      ).mode,
+    ).toBe('blocked')
+    expect(
+      getOperationMatchResult(
+        operation([b], [{ name: '任选', opers: [a, b] }]),
+        owned,
+        [a.id],
+      ).mode,
+    ).toBe('blocked')
+  })
   it('allows five distinct operators and rejects six even if owned', () => {
     expect(result(operation([a, b, c, d, e])).mode).toBe('ready')
     const owned = snapshot()
