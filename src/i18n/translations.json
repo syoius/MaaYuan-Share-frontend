@@ -4340,16 +4340,6 @@
         "zh_tw": "下載 JSON"
       }
     },
-    "ServerSwitchButton": {
-      "switch_site": {
-        "cn": "切换站点",
-        "zh_tw": "切換站點"
-      },
-      "tooltip": {
-        "cn": "当前站点不可用时可跳转至：{{target}}",
-        "zh_tw": "當前站點不可用時可跳轉至：{{target}}"
-      }
-    },
     "ThemeSwitchButton": {
       "switch_theme": {
         "cn": "切换主题",

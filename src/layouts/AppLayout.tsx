@@ -10,7 +10,6 @@ import { BackToTop } from 'components/BackToTop'
 import { LanguageSwitcher } from 'components/LanguageSwitcher'
 import { NavExpandButton } from 'components/NavExpandButton'
 import { OnboardingDialog } from 'components/OnboardingDialog'
-import { ServerSwitchButton } from 'components/ServerSwitchButton'
 import { SiteRetireDialog } from 'components/SiteRetireDialog'
 import { ThemeSwitchButton } from 'components/ThemeSwitchButton'
 import { NavAside } from 'components/drawer/NavAside'
@@ -57,10 +56,6 @@ export const AppLayout: FCC = ({ children }) => {
           <NavExpandButton />
           <LanguageSwitcher />
           <ThemeSwitchButton />
-          {/* 站点切换仅桌面端显示（移动端可从其他途径使用站点能力，导航保持精简） */}
-          <div className="hidden md:flex">
-            <ServerSwitchButton />
-          </div>
           <div className="ml-auto">
             <AccountManager />
           </div>
