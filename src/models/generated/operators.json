@@ -11667,37 +11667,204 @@
       ]
     },
     {
-      "id": "char_135_unknown",
-      "name": "",
-      "name_en": "",
-      "alias": "“”",
-      "alt_name": "",
-      "rarity": 0,
-      "prof": [],
-      "subProf": [],
+      "id": "char_135_gaoshun",
+      "name": "高顺",
+      "name_en": "高顺",
+      "alias": "gaoshun gs “高顺” 高顺",
+      "alt_name": "高顺",
+      "rarity": 5,
+      "prof": [
+        "地"
+      ],
+      "subProf": [
+        "pojun"
+      ],
       "games": [
-        "如鸢",
         "代号鸢"
       ],
-      "discs": []
+      "discs": [
+        {
+          "ot_name": "技能伤害中幅增加",
+          "abbreviation": "技伤中幅",
+          "color": "紫",
+          "desp": "技能的伤害系数增加27%"
+        },
+        {
+          "ot_name": "初始能量+1",
+          "abbreviation": "初始+1",
+          "color": "紫",
+          "desp": "初始能量+1"
+        },
+        {
+          "ot_name": "骁勇有谋",
+          "abbreviation": "骁勇有谋",
+          "color": "金",
+          "desp": "回合开始时，若敌方的人数大于等于2，则我方全体地属性密探普攻增伤提升50，技能增伤提升50"
+        },
+        {
+          "ot_name": "防御时恢复生命",
+          "abbreviation": "防御回血",
+          "color": "紫",
+          "desp": "防御时，恢复10%最大生命值的生命"
+        },
+        {
+          "ot_name": "殉节",
+          "abbreviation": "殉节",
+          "color": "金",
+          "desp": "<断后护军>新增：除自身外我方地属性密探下拉防御后，自身会失去10％的当前生命，但【戟伤】达到3层时可以延长1回合"
+        },
+        {
+          "ot_name": "初始能量+3",
+          "abbreviation": "能量+3",
+          "color": "金",
+          "desp": "初始能量+3"
+        },
+        {
+          "ot_name": "最大生命小幅提升",
+          "abbreviation": "生命小幅",
+          "color": "蓝",
+          "desp": "最大生命提升3%"
+        },
+        {
+          "ot_name": "技能伤害小幅增加",
+          "abbreviation": "技伤小幅",
+          "color": "蓝",
+          "desp": "技能的伤害系数增加14%"
+        },
+        {
+          "ot_name": "生命低时提升攻击",
+          "abbreviation": "血低攻高",
+          "color": "蓝",
+          "desp": "生命值低于50%时，自身攻击力提升10%"
+        },
+        {
+          "ot_name": "技能伤害中幅增加",
+          "abbreviation": "技伤中幅",
+          "color": "紫",
+          "desp": "技能的伤害系数增加27%"
+        },
+        {
+          "ot_name": "普攻伤害小幅增加",
+          "abbreviation": "普攻小幅",
+          "color": "蓝",
+          "desp": "普攻的伤害系数增加5%"
+        },
+        {
+          "ot_name": "闻声识叛",
+          "abbreviation": "闻声识叛",
+          "color": "金",
+          "desp": "自身或吕布拥有【锋焰】或【悍锐】时，可以额外执行一次技能效果（不视作行动，不触发自身其他攻击效果）。若为吕布，吕布使用<踏破>不再清除【悍】"
+        }
+      ]
     },
     {
-      "id": "char_136_unknown",
-      "name": "",
-      "name_en": "",
-      "alias": "“”",
-      "alt_name": "",
-      "rarity": 0,
-      "prof": [],
-      "subProf": [],
+      "id": "char_136_feizhi",
+      "name": "肥致",
+      "name_en": "肥致",
+      "alias": "feizhi fz “肥致” 肥致",
+      "alt_name": "肥致",
+      "rarity": 5,
+      "prof": [
+        "火"
+      ],
+      "subProf": [
+        "shenji"
+      ],
       "games": [
-        "如鸢",
         "代号鸢"
       ],
-      "discs": []
+      "discs": [
+        {
+          "ot_name": "普攻伤害中幅增加",
+          "abbreviation": "普攻中幅",
+          "color": "紫",
+          "desp": "普攻的伤害系数增加10%"
+        },
+        {
+          "ot_name": "初始能量+1",
+          "abbreviation": "初始+1",
+          "color": "紫",
+          "desp": "初始能量+1"
+        },
+        {
+          "ot_name": "青阳启蛰",
+          "abbreviation": "青阳启蛰",
+          "color": "金",
+          "desp": "第1回合和之后的每3回合开始时，自身获得2层【刍狗】；若自身存在【黄金剑】，额外获得2把【黄金剑】"
+        },
+        {
+          "ot_name": "防御时恢复生命",
+          "abbreviation": "防御回血",
+          "color": "紫",
+          "desp": "防御时，恢复10%最大生命值的生命"
+        },
+        {
+          "ot_name": "初始能量+3",
+          "abbreviation": "能量+3",
+          "color": "金",
+          "desp": "初始能量+3"
+        },
+        {
+          "ot_name": "万里取葵",
+          "abbreviation": "万里取葵",
+          "color": "金",
+          "desp": "【观测】持续回合+1，除自身外每有一位<杀生仙>的成员，触发时会额外执行一次"
+        },
+        {
+          "ot_name": "最大生命小幅提升",
+          "abbreviation": "生命小幅",
+          "color": "蓝",
+          "desp": "最大生命提升3%"
+        },
+        {
+          "ot_name": "技能伤害小幅增加",
+          "abbreviation": "技伤小幅",
+          "color": "蓝",
+          "desp": "技能的伤害系数增加14%"
+        },
+        {
+          "ot_name": "生命低时提升攻击",
+          "abbreviation": "血低攻高",
+          "color": "蓝",
+          "desp": "生命值低于50%时，自身攻击力提升10%"
+        },
+        {
+          "ot_name": "技能伤害中幅增加",
+          "abbreviation": "技伤中幅",
+          "color": "紫",
+          "desp": "技能的伤害系数增加27%"
+        },
+        {
+          "ot_name": "普攻伤害小幅增加",
+          "abbreviation": "普攻小幅",
+          "color": "蓝",
+          "desp": "普攻的伤害系数增加5%"
+        },
+        {
+          "ot_name": "除赤气",
+          "abbreviation": "除赤气",
+          "color": "金",
+          "desp": "若自身与自身顺位上下的密探存在且仅存在地、火属性的密探，则我方全体火属性密探的每1点地属性增伤转化为2点火属性增伤，我方全体地属性密探的每1点火属性增伤转化为2点地属性增伤"
+        }
+      ]
     },
     {
       "id": "char_137_unknown",
+      "name": "",
+      "name_en": "",
+      "alias": "“”",
+      "alt_name": "",
+      "rarity": 0,
+      "prof": [],
+      "subProf": [],
+      "games": [
+        "如鸢",
+        "代号鸢"
+      ],
+      "discs": []
+    },
+    {
+      "id": "char_138_unknown",
       "name": "",
       "name_en": "",
       "alias": "“”",
