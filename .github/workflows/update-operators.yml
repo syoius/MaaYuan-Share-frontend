@@ -82,7 +82,7 @@ jobs:
           fi
 
           deploy=false
-          if ! git diff --cached --quiet -- src/models/generated/operators.json public/assets/operator-avatars/; then
+          if ! git diff --cached --quiet -- src/models/generated/operators.json public/assets/operator-avatars/ tools/yuanhub-avatar-manifest.json; then
             deploy=true
           fi
           git config --local user.email "github-actions[bot]@users.noreply.github.com"

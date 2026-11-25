@@ -6,6 +6,7 @@ import {
   findOperatorById,
   findOperatorByName,
 } from '../models/operator'
+import { operatorAvatarFallback, operatorAvatarUrl } from '../models/operatorAvatar'
 
 interface OperatorAvatarProps {
   id?: string
@@ -57,12 +58,9 @@ export function OperatorAvatar({
   const commonClassName =
     'ring-inset ring-2 border-solid rounded-md object-cover'
 
-  const fallbackSrc = `/assets/operator-avatars/404.webp`
   const useCompactSource = size === 'small' && sourceSize === 32
-  const avatarSrc = `/assets/operator-avatars/webp${useCompactSource ? 32 : 96}/${id}.webp`
-  const avatarSrcSet = useCompactSource
-    ? `${avatarSrc} 1x, /assets/operator-avatars/webp96/${id}.webp 2x`
-    : `${avatarSrc} 1x, /assets/operator-avatars/webp192/${id}.webp 2x`
+  const avatarSrc = operatorAvatarUrl(id, useCompactSource ? 32 : 96)
+  const avatarSrcSet = `${avatarSrc} 1x, ${operatorAvatarUrl(id, useCompactSource ? 96 : 192)} 2x`
 
   return id ? (
     <img
@@ -84,7 +82,7 @@ export function OperatorAvatar({
         if (target.dataset.fallbackApplied === 'true') return
         target.dataset.fallbackApplied = 'true'
         target.srcset = ''
-        target.src = fallbackSrc
+        target.src = operatorAvatarFallback
       }}
     />
   ) : (

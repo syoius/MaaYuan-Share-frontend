@@ -1,6 +1,7 @@
 import clsx from 'clsx'
 import type { CSSProperties, ReactNode, Ref } from 'react'
 
+import { operatorAvatarFallback, operatorAvatarUrl } from '../../models/operatorAvatar'
 import type {
   OperationShareModel,
   OperationShareOperator,
@@ -44,16 +45,10 @@ const RarityDiamond = ({ className }: { className?: string }) => (
   </svg>
 )
 
-function operatorAvatar(operator: OperationShareOperator) {
-  return operator.avatarId
-    ? `/assets/operator-avatars/webp192/${operator.avatarId}.webp`
-    : '/assets/operator-avatars/404.webp'
-}
-
 function applyAvatarFallback(image: HTMLImageElement) {
   if (image.dataset.fallbackApplied === 'true') return
   image.dataset.fallbackApplied = 'true'
-  image.src = '/assets/operator-avatars/404.webp'
+  image.src = operatorAvatarFallback
 }
 
 export function ShareOperatorAvatar({
@@ -72,7 +67,7 @@ export function ShareOperatorAvatar({
       height={size}
       loading="eager"
       onError={(event) => applyAvatarFallback(event.currentTarget)}
-      src={operatorAvatar(operator)}
+      src={operatorAvatarUrl(operator.avatarId, 192)}
       width={size}
     />
   )
