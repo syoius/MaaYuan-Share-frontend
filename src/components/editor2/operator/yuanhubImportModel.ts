@@ -2,7 +2,7 @@ import {
   ASSIST_STAR_OPTIONS,
   MAIN_STAR_OPTIONS,
 } from '../../../data/star-stones'
-import { findOperatorById } from '../../../models/operator'
+import { findDiscIndex, findOperatorById } from '../../../models/operator'
 import type { YuanHubTrainingEntry } from '../../../models/yuanhubTraining'
 import { createOperator } from '../reconciliation'
 import type { EditorOperator } from '../types'
@@ -65,11 +65,15 @@ export function yuanHubImportCandidate(
   if (loadout && loadout.discs.length > 3) {
     warnings.push('命盘超过三个词条，本次不导入命盘')
   } else {
+    const usedDiscs = new Set<number>()
     loadout?.discs.forEach((name, index) => {
-      const discIndex = info.discs.findIndex((disc) => disc.ot_name === name)
-      if (discIndex < 0 || loadout.discs.indexOf(name) !== index)
+      const discIndex = findDiscIndex(info.discs, name)
+      if (discIndex < 0 || usedDiscs.has(discIndex))
         warnings.push(`无法导入命盘词条：${name}`)
-      else operator = setDiscSlot(operator, index, { disc: discIndex + 1 })
+      else {
+        usedDiscs.add(discIndex)
+        operator = setDiscSlot(operator, index, { disc: discIndex + 1 })
+      }
     })
   }
   if (!entry.starSlots)

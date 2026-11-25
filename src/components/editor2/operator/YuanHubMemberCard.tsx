@@ -2,7 +2,7 @@ import { Button } from '@blueprintjs/core'
 
 import { useId } from 'react'
 
-import { findOperatorById } from '../../../models/operator'
+import { findDiscIndex, findOperatorById } from '../../../models/operator'
 import { YuanHubTeamMember } from '../../../models/yuanhubTeamPreset'
 import { YuanHubTrainingEntry } from '../../../models/yuanhubTraining'
 import { OperatorAvatar } from '../../OperatorAvatar'
@@ -30,10 +30,10 @@ export function YuanHubMemberCard({
   const id = useId()
   const name = candidate?.label ?? member.operatorId
   const operator = candidate?.operator
-  const discCatalog = findOperatorById(member.operatorId)?.discs
+  const discCatalog = findOperatorById(member.operatorId)?.discs ?? []
   const effects = (discs: string[]) =>
     discs.map((disc, i) => {
-      const color = discCatalog?.find((item) => item.ot_name === disc)?.color
+      const color = discCatalog[findDiscIndex(discCatalog, disc)]?.color
       return (
         <span
           className="yuanhub-disc-effect"

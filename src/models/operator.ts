@@ -16,6 +16,14 @@ export type OperatorInfo = (typeof OPERATORS)[number] & {
 };
 export type Profession = (typeof PROFESSIONS)[number];
 
+export function findDiscIndex(
+  discs: readonly { ot_name?: string; aliases?: readonly string[] }[],
+  name: string,
+): number {
+  const exact = discs.findIndex((disc) => disc.ot_name === name);
+  return exact >= 0 ? exact : discs.findIndex((disc) => disc.aliases?.includes(name));
+}
+
 const OPERATORS_BY_ID = Object.fromEntries(OPERATORS.map((operator) => [operator.id, operator]));
 export function findOperatorById(id: string): OperatorInfo | undefined {
   return OPERATORS_BY_ID[id];

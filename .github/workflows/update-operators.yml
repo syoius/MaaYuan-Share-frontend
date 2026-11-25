@@ -1,36 +1,39 @@
 name: Update Operators Data
 
 on:
-  # 保留原有的定时任务
   schedule:
-    - cron: "0 0 * * 0" # 每周日 UTC 00:00 运行
-  
-  # 保留原有的手动触发
+    - cron: "*/10 * * * *"
   workflow_dispatch:
-  
-  # ✅ 新增：接收外部 Webhook 信号
-  repository_dispatch:
-    types: [feishu_content_update]  # 这里必须和你 Node.js 代码里的 event_type 一致
+    inputs:
+      source:
+        description: Operator catalog source
+        type: choice
+        default: yuanhub
+        options: [yuanhub, feishu]
+  # 注释掉旧飞书 Webhook，防止其覆盖 YuanHub 数据。需要恢复时取消注释。
+  # repository_dispatch:
+  #   types: [feishu_content_update]
+
+concurrency:
+  group: update-operators
+  cancel-in-progress: false
 
 jobs:
   sync-operators:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      deploy: ${{ steps.commit.outputs.deploy }}
+    env:
+      SOURCE: ${{ github.event_name == 'repository_dispatch' && 'feishu' || inputs.source || 'yuanhub' }}
 
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      
-      # (可选) 增加一个步骤打印触发来源，方便调试
-      - name: Log Trigger Source
-        run: |
-          echo "Workflow triggered by: ${{ github.event_name }}"
-          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
-            echo "Payload timestamp: ${{ github.event.client_payload.timestamp }}"
-            echo "Source: ${{ github.event.client_payload.source }}"
-          fi
+          # 排队期间上一轮可能已推送，取当前分支最新提交。
+          ref: ${{ github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -39,10 +42,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install requests pypinyin
+          if [ "$SOURCE" = yuanhub ]; then
+            python -m pip install requests pypinyin Pillow
+          else
+            python -m pip install requests pypinyin
+          fi
 
-      - name: Sync operators data
+      - name: Sync operators from YuanHub
+        if: ${{ env.SOURCE == 'yuanhub' }}
+        env:
+          YUANHUB_BASE_URL: ${{ vars.YUANHUB_BASE_URL }}
+        run: python tools/sync_operators_from_yuanhub.py
+
+      - name: Sync operators from Feishu
+        if: ${{ env.SOURCE == 'feishu' }}
         env:
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
@@ -52,27 +65,46 @@ jobs:
         run: python tools/sync_operators.py
 
       - name: Commit and push if changed
+        id: commit
         run: |
+          git add -- src/models/generated/operators.json
+          if [ "$SOURCE" = yuanhub ]; then
+            for path in public/assets/operator-avatars/ tools/yuanhub-avatar-manifest.json; do
+              if [ -e "$path" ]; then
+                git add -- "$path"
+              fi
+            done
+          fi
+
+          if git diff --cached --quiet; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          deploy=false
+          if ! git diff --cached --quiet -- src/models/generated/operators.json public/assets/operator-avatars/; then
+            deploy=true
+          fi
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
-          # ✅ 修改点：使用脚本实际生成的准确路径
-          git add src/models/generated/operators.json || true
-          
-          # 提交变更
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update operators data [skip ci]" && git push)
+          git commit -m "chore: update operators data [skip ci]"
+          git push
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
 
   deploy-to-nas:
     needs: sync-operators
+    if: ${{ needs.sync-operators.outputs.deploy == 'true' }}
     uses: ./.github/workflows/nas_deploy.yml
     secrets: inherit
 
   deploy-to-gce:
     needs: sync-operators
+    if: ${{ needs.sync-operators.outputs.deploy == 'true' }}
     uses: ./.github/workflows/gce_deploy.yml
     secrets: inherit
 
   deploy-to-mainland:
     needs: sync-operators
+    if: ${{ needs.sync-operators.outputs.deploy == 'true' }}
     uses: ./.github/workflows/mainland-deploy.yml
     secrets: inherit
